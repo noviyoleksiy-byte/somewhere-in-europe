@@ -1,0 +1,143 @@
+#1 [FR]
+This country is the most visited tourist destination in the world, famous for its Art Nouveau metro entrances in the capital.
++++
+Here the Lumière brothers held the first public cinema screening in 1895, and the national motto is "Liberty, Equality, Fraternity".
+---
+France — Paris. The first commercial film projection took place in Paris on December 28, 1895.
+
+#2 [IT]
+This country holds more UNESCO World Heritage Sites than any other nation and gave the world musical notation and the piano.
++++
+An independent microstate, Vatican City, sits entirely inside its capital city.
+---
+Italy — Rome. Bartolomeo Cristofori invented the piano in Florence around the year 1700.
+
+#3 [CH]
+This landlocked nation has four official languages and one of the world's only square national flags.
++++
+It hosts the Large Hadron Collider at CERN and the headquarters of the International Red Cross.
+---
+Switzerland — Bern. Its four national languages are German, French, Italian, and Romansh.
+
+#4 [NL]
+Nearly a third of this country sits below sea level, protected by an ingenious network of dikes, canals, and pumping stations.
+---
+Netherlands — Amsterdam. It is also the homeland of master painters Rembrandt, Vermeer, and Vincent van Gogh.
+
+#5 [UA]
+The largest country located entirely inside Europe, it also hosts one of the continent's geographical center markers in the Carpathians.
++++
+Composer Mykola Leontovych created "Shchedryk" here, known worldwide as "Carol of the Bells".
+---
+Ukraine — Kyiv. Pylyp Orlyk's 1710 constitution drafted here is one of Europe's earliest constitutional documents.
+
+#6 [PL]
+Astronomer Nicolaus Copernicus, who proved Earth orbits the Sun, lived in this country, as did romantic composer Frédéric Chopin.
+---
+Poland — Warsaw. The Wieliczka Salt Mine near Kraków has operated continuously since the 13th century and houses underground chapels.
+
+#7 [DE]
+Johannes Gutenberg invented the movable-type printing press in this country, and Karl Benz patented the first gasoline automobile here.
+---
+Germany — Berlin. More than 20,000 castles and palaces dot its valleys and hills.
+
+#8 [ES]
+Its language is the second most spoken native language on Earth, and its cities blend Moorish palaces like the Alhambra with modernist architecture.
+---
+Spain — Madrid. At 650 meters elevation, Madrid is the highest major capital in the European Union.
+
+#9 [PT]
+Known for soulful Fado music, this country has kept nearly unchanged borders since the 12th century.
++++
+It also produces over half of the world's natural cork supply from oak forests.
+---
+Portugal — Lisbon. Lisbon's Vasco da Gama Bridge stretches over 12 kilometers across the Tagus River.
+
+#10 [GB]
+This island nation codified the modern rules of football, rugby, and tennis, and sparked the Industrial Revolution with the steam engine.
+---
+United Kingdom — London. The Prime Meridian at Greenwich marks 0° longitude for the world's time zones.
+
+#11 [IE]
+This is the only European Union country to feature a musical instrument — a golden harp — as its official national emblem.
+---
+Ireland — Dublin. Four writers from this small island have won the Nobel Prize in Literature.
+
+#12 [SE]
+The Nobel Prizes are awarded in this country's capital every December 10, and inventors here created the zipper and the three-point seatbelt.
+---
+Sweden — Stockholm. Engineer Nils Bohlin made the three-point seatbelt patent free to all carmakers to save lives.
+
+#13 [FI]
+With more than 180,000 lakes, this Nordic nation consistently ranks near the top of global education systems.
+---
+Finland — Helsinki. It is also the birthplace of Nokia phones and Linux creator Linus Torvalds.
+
+#14 [NO]
+Every December, this country gifts London a towering spruce tree for Trafalgar Square in gratitude for World War II support.
+---
+Norway — Oslo. Its Svalbard archipelago hosts the Global Seed Vault deep inside an Arctic mountain.
+
+#15 [DK]
+Spread across the Jutland peninsula and over 400 islands, this kingdom flies the oldest continuously used national flag in the world.
+---
+Denmark — Copenhagen. The red-and-white Dannebrog banner dates back to 1219.
+
+#16 [AT]
+Though landlocked, this Alpine country became Europe's classical music heartland — home to Mozart, Haydn, and Beethoven's symphonies.
+---
+Austria — Vienna. Vienna's State Opera and coffeehouse culture are recognized as cultural heritage.
+
+#17 [CZ]
+Playwright Karel Čapek from this country introduced the word "robot" to world languages in 1920.
++++
+Soft contact lenses and sugar cubes were also invented here.
+---
+Czechia — Prague. Karel's brother, painter Josef Čapek, actually suggested the word "robot" from "robota" (hard labor).
+
+#18 [SK]
+This Central European nation counts over 6,000 caves and the highest number of castles and chateaux per capita in the world.
+---
+Slovakia — Bratislava. Bratislava is the only national capital bordering two sovereign states (Austria and Hungary).
+
+#19 [HU]
+Its capital opened continental Europe's first underground railway in 1896, and inventor Ernő Rubik created the world's best-selling puzzle cube here.
+---
+Hungary — Budapest. Hungarian journalist László Bíró also invented the modern ballpoint pen.
+
+#20 [GR]
+Spanning more than 2,000 Mediterranean and Aegean islands, this nation's alphabet gave rise to both Latin and Cyrillic scripts.
+---
+Greece — Athens. Crete here nurtured Europe's ancient Minoan civilization over 4,000 years ago.
+
+#21 [EE]
+This Baltic nation pioneered nationwide internet voting in general elections and helped create Skype.
+---
+Estonia — Tallinn. Nearly all public government services here can be completed online 24/7.
+
+#22 [RO]
+The Danube Delta biosphere reserve meets the Black Sea here, and gymnast Nadia Comăneci became the first Olympian to score a perfect 10.0.
+---
+Romania — Bucharest. Bucharest's Palace of the Parliament is the heaviest building on Earth.
+
+#23 [HR]
+17th-century soldiers from this Adriatic country wore knotted neck scarves that inspired the modern necktie ("cravat").
++++
+Its coastline includes more than a thousand islands and the walled city of Dubrovnik.
+---
+Croatia — Zagreb. Even today, several European languages call a necktie "kravata" or "cravate".
+
+#24 [BG]
+Its famous "Rose Valley" produces much of the world's rose oil, and locals traditionally nod for "no" and shake their heads for "yes".
+---
+Bulgaria — Sofia. Early Cyrillic literary schools flourished here in the 9th and 10th centuries.
+
+#25 [IS]
+Founded in 930 AD, this island nation boasts one of the world's oldest surviving parliaments (Althing) and heats nearly all homes with geothermal energy.
+---
+Iceland — Reykjavik. Fewer than 400,000 people live here, yet the country produces record music and books per capita.
+
+#26 [BE]
+Its capital hosts the main institutions of the European Union and NATO, and local historians fiercely claim credit for inventing crispy French fries.
+---
+Belgium — Brussels. Antwerp here has been a global diamond-cutting hub for centuries.

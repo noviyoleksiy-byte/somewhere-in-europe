@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1"
+>
+<title>Somewhere in Europe — TV</title>
+<link rel="stylesheet" href="tv.css">
+</head>
+<body>
+<button
+id="corner-host-btn"
+type="button"
+>📱 Пульт / Host</button>
+<div id="tv-stage">
+<canvas
+id="game-canvas"
+width="1920"
+height="1080"
+></canvas>
+</div>
+<div
+id="waiting-screen"
+class="theme-christmas"
+>
+<div class="wait-box">
+<div
+id="wait-title"
+class="wait-title"
+>ДЕСЬ У ЄВРОПІ</div>
+<div
+id="wait-sub"
+class="wait-sub"
+>УНІВЕРСАЛЬНА ВІКТОРИНА ПО КАРТІ</div>
+<div
+id="wait-hint"
+class="wait-hint"
+>Оберіть або запустіть гру з пульта</div>
+<div class="wait-actions">
+<button
+id="tv-fs-btn"
+type="button"
+class="wait-btn"
+>⛶ НА ВЕСЬ ЕКРАН</button>
+<button
+id="tv-sound-btn"
+type="button"
+class="wait-btn sound-on"
+>🔊 ЗВУК: УВІМК.</button>
+<button
+id="tv-host-btn"
+type="button"
+class="wait-btn host-accent"
+>📱 ПУЛЬТ ВЕДУЧОГО</button>
+</div>
+</div>
+</div>
+<iframe
+id="debug-host-frame"
+src="/host"
+></iframe>
+<script src="europe-map.js"></script>
+<script src="tvscale.js"></script>
+<script src="i18n-client.js"></script>
+<script src="renderer.js"></script>
+<script src="tv.js"></script>
+</body>
+</html>
