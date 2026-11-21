@@ -327,103 +327,32 @@ return list[i];
 return null;
 }
 
-// draw single layered botanical hop cone
-// uses stem cap and layered green bracts
-function drawHopCone(ctx, x, y, ang, sc) {
-ctx.save();
-ctx.translate(x, y);
-ctx.rotate(ang);
-ctx.scale(sc, sc);
-
-ctx.strokeStyle = '#072e1b';
-ctx.lineWidth = 2;
+// draw pointed almond bract scale
+// builds engraved hop cone lattice
+function drawHopScale(
+ctx,
+x,
+y,
+w,
+h,
+fill,
+stroke
+) {
 ctx.beginPath();
-ctx.moveTo(0, -18);
-ctx.lineTo(0, -11);
-ctx.stroke();
-
-var tiers = [
-{ y: -12, rx: 10, ry: 7, c: '#355f3b' },
-{ y: -5, rx: 12.5, ry: 8, c: '#4d7c46' },
-{ y: 3, rx: 11.5, ry: 8, c: '#6f9650' },
-{ y: 11, rx: 8.5, ry: 7, c: '#96ae5e' },
-{ y: 17, rx: 5, ry: 5, c: '#b3be71' }
-];
-for (var i = 0; i < tiers.length; i++) {
-var tr = tiers[i];
-ctx.fillStyle = tr.c;
-ctx.strokeStyle = '#072e1b';
-ctx.lineWidth = 1.1;
-
-ctx.beginPath();
-ctx.save();
-ctx.translate(-tr.rx * 0.42, tr.y);
-ctx.scale(1, tr.ry / tr.rx);
-ctx.arc(0, 0, tr.rx * 0.72, 0, Math.PI * 2);
-ctx.restore();
-ctx.fill();
-ctx.stroke();
-
-ctx.beginPath();
-ctx.save();
-ctx.translate(tr.rx * 0.42, tr.y);
-ctx.scale(1, tr.ry / tr.rx);
-ctx.arc(0, 0, tr.rx * 0.72, 0, Math.PI * 2);
-ctx.restore();
-ctx.fill();
-ctx.stroke();
-
-ctx.beginPath();
-ctx.save();
-ctx.translate(0, tr.y + 2);
-ctx.scale(1, (tr.ry * 0.9) / (tr.rx * 0.72));
-ctx.arc(0, 0, tr.rx * 0.65, 0, Math.PI * 2);
-ctx.restore();
-ctx.fill();
-ctx.stroke();
-}
-ctx.restore();
-}
-
-// draw three-lobed botanical hop leaf
-// adds crisp dark outline and light veins
-function drawHopLeaf(ctx, x, y, ang, sc) {
-ctx.save();
-ctx.translate(x, y);
-ctx.rotate(ang);
-ctx.scale(sc, sc);
-
-ctx.fillStyle = '#245a38';
-ctx.strokeStyle = '#072e1b';
-ctx.lineWidth = 1.4;
-ctx.beginPath();
-ctx.moveTo(0, 12);
-ctx.quadraticCurveTo(-18, 12, -24, -4);
-ctx.quadraticCurveTo(-14, -6, -11, -12);
-ctx.quadraticCurveTo(-8, -22, 0, -28);
-ctx.quadraticCurveTo(8, -22, 11, -12);
-ctx.quadraticCurveTo(14, -6, 24, -4);
-ctx.quadraticCurveTo(18, 12, 0, 12);
+ctx.moveTo(x, y - h);
+ctx.quadraticCurveTo(x + w, y, x, y + h);
+ctx.quadraticCurveTo(x - w, y, x, y - h);
 ctx.closePath();
+ctx.fillStyle = fill;
 ctx.fill();
+ctx.strokeStyle = stroke;
+ctx.lineWidth = 1.05;
 ctx.stroke();
-
-ctx.strokeStyle = '#5f8d4e';
-ctx.lineWidth = 1.1;
-ctx.beginPath();
-ctx.moveTo(0, 10);
-ctx.lineTo(0, -22);
-ctx.moveTo(0, 2);
-ctx.lineTo(-16, -3);
-ctx.moveTo(0, 2);
-ctx.lineTo(16, -3);
-ctx.stroke();
-ctx.restore();
 }
 
-// draw delicate curling hop bine tendril
-// softens vine tips with botanical spiral
-function drawHopTendril(
+// draw stylized engraved hop strobile
+// uses pointed scales and brass rib
+function drawOrnamentHop(
 ctx,
 x,
 y,
@@ -434,14 +363,361 @@ ctx.save();
 ctx.translate(x, y);
 ctx.rotate(ang);
 ctx.scale(sc, sc);
-ctx.strokeStyle = '#2c6a3f';
-ctx.lineWidth = 1.6;
+
+var ink = '#163c27';
+var washA = 'rgba(72,114,66,0.28)';
+var washB = 'rgba(116,148,78,0.34)';
+var washC = 'rgba(164,174,98,0.38)';
+
+ctx.strokeStyle = ink;
+ctx.lineWidth = 1.3;
+ctx.beginPath();
+ctx.moveTo(0, -18);
+ctx.quadraticCurveTo(2, -14, 0, -11);
+ctx.stroke();
+
+drawHopScale(ctx, -5.5, -6, 4.8, 6.2, washA, ink);
+drawHopScale(ctx, 5.5, -6, 4.8, 6.2, washA, ink);
+drawHopScale(ctx, 0, -5, 5.4, 6.8, washB, ink);
+
+drawHopScale(ctx, -6.5, 1.5, 5.2, 6.8, washA, ink);
+drawHopScale(ctx, 6.5, 1.5, 5.2, 6.8, washA, ink);
+drawHopScale(ctx, 0, 2.5, 5.8, 7.2, washB, ink);
+
+drawHopScale(ctx, -4.5, 9, 4.4, 6.0, washB, ink);
+drawHopScale(ctx, 4.5, 9, 4.4, 6.0, washB, ink);
+drawHopScale(ctx, 0, 10.5, 4.8, 6.6, washC, ink);
+
+drawHopScale(ctx, 0, 16, 3.3, 5.0, washC, ink);
+
+ctx.strokeStyle = 'rgba(181,139,66,0.58)';
+ctx.lineWidth = 0.9;
+ctx.beginPath();
+ctx.moveTo(0, -8);
+ctx.lineTo(0, 15);
+ctx.stroke();
+ctx.restore();
+}
+
+// draw engraved three-lobed hop leaf
+// uses translucent sage wash and veins
+function drawOrnamentLeaf(
+ctx,
+x,
+y,
+ang,
+sc
+) {
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.scale(sc, sc);
+
+ctx.fillStyle = 'rgba(54,108,68,0.20)';
+ctx.strokeStyle = '#163c27';
+ctx.lineWidth = 1.15;
+ctx.beginPath();
+ctx.moveTo(0, 8);
+ctx.quadraticCurveTo(-14, 6, -20, -6);
+ctx.quadraticCurveTo(-10, -7, -8, -12);
+ctx.quadraticCurveTo(-6, -22, 0, -28);
+ctx.quadraticCurveTo(6, -22, 8, -12);
+ctx.quadraticCurveTo(10, -7, 20, -6);
+ctx.quadraticCurveTo(14, 6, 0, 8);
+ctx.closePath();
+ctx.fill();
+ctx.stroke();
+
+ctx.strokeStyle = 'rgba(22,60,39,0.65)';
+ctx.lineWidth = 0.9;
+ctx.beginPath();
+ctx.moveTo(0, 8);
+ctx.lineTo(0, -23);
+ctx.moveTo(0, 1);
+ctx.lineTo(-14, -5);
+ctx.moveTo(0, 1);
+ctx.lineTo(14, -5);
+ctx.stroke();
+ctx.restore();
+}
+
+// draw filigree spiral volute curl
+// finishes scrollwork vines cleanly
+function drawVolute(
+ctx,
+x,
+y,
+ang,
+sc,
+col
+) {
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.scale(sc, sc);
+ctx.strokeStyle = col;
+ctx.lineWidth = 1.25;
 ctx.beginPath();
 ctx.moveTo(0, 0);
-ctx.quadraticCurveTo(12, -10, 20, 0);
-ctx.quadraticCurveTo(26, 8, 18, 12);
-ctx.quadraticCurveTo(12, 14, 14, 7);
+ctx.quadraticCurveTo(12, -10, 18, 0);
+ctx.quadraticCurveTo(22, 10, 12, 12);
+ctx.quadraticCurveTo(6, 12, 7, 6);
+ctx.quadraticCurveTo(8, 3, 12, 5);
 ctx.stroke();
+ctx.fillStyle = '#b58b42';
+ctx.beginPath();
+ctx.arc(11.5, 6.2, 1.7, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+}
+
+// draw symmetrical engraved hop corner
+// mirrors cleanly onto any frame corner
+function drawHopCornerOrnament(
+ctx,
+ox,
+oy,
+sx,
+sy,
+sc
+) {
+ctx.save();
+ctx.translate(ox, oy);
+ctx.scale(sx * sc, sy * sc);
+ctx.globalAlpha = 0.82;
+
+var ink = '#163c27';
+var gold = 'rgba(181,139,66,0.78)';
+
+// primary intertwined corner scrollwork
+// hugs both rails with double vine curve
+ctx.strokeStyle = ink;
+ctx.lineWidth = 1.6;
+ctx.beginPath();
+ctx.moveTo(10, 10);
+ctx.bezierCurveTo(
+56,
+6,
+106,
+34,
+162,
+16
+);
+ctx.bezierCurveTo(
+196,
+6,
+218,
+20,
+232,
+14
+);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(10, 10);
+ctx.bezierCurveTo(
+6,
+54,
+34,
+96,
+16,
+146
+);
+ctx.bezierCurveTo(
+6,
+174,
+20,
+192,
+14,
+206
+);
+ctx.stroke();
+
+ctx.strokeStyle = gold;
+ctx.lineWidth = 1.1;
+ctx.beginPath();
+ctx.moveTo(14, 14);
+ctx.bezierCurveTo(
+64,
+32,
+112,
+4,
+176,
+24
+);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(14, 14);
+ctx.bezierCurveTo(
+32,
+60,
+4,
+104,
+24,
+160
+);
+ctx.stroke();
+
+drawVolute(ctx, 230, 13, -0.2, 0.88, ink);
+drawVolute(ctx, 174, 23, 0.25, 0.68, gold);
+drawVolute(ctx, 13, 204, 1.4, 0.88, ink);
+drawVolute(ctx, 23, 158, 1.85, 0.68, gold);
+
+// diagonal corner finial & hop motif
+// anchors ornament at frame intersection
+drawOrnamentLeaf(ctx, 64, 24, 1.25, 0.84);
+drawOrnamentLeaf(ctx, 24, 62, -0.32, 0.84);
+drawOrnamentLeaf(ctx, 142, 24, 1.48, 0.72);
+drawOrnamentLeaf(ctx, 24, 128, -0.1, 0.72);
+
+drawOrnamentHop(ctx, 44, 44, -0.78, 0.96);
+drawOrnamentHop(ctx, 114, 28, -0.25, 0.76);
+drawOrnamentHop(ctx, 188, 22, -0.12, 0.64);
+drawOrnamentHop(ctx, 28, 104, -1.32, 0.76);
+drawOrnamentHop(ctx, 22, 168, -1.45, 0.64);
+
+ctx.fillStyle = ink;
+ctx.beginPath();
+ctx.arc(10, 10, 4.2, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = '#b58b42';
+ctx.beginPath();
+ctx.arc(10, 10, 2.1, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.restore();
+}
+
+// draw compact horizontal hop corner
+// stays neatly above left riddle card
+function drawTopLeftHopScroll(ctx) {
+ctx.save();
+ctx.translate(19, 19);
+ctx.globalAlpha = 0.82;
+
+var ink = '#163c27';
+var gold = 'rgba(181,139,66,0.78)';
+
+ctx.strokeStyle = ink;
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.moveTo(8, 24);
+ctx.bezierCurveTo(
+14,
+8,
+64,
+6,
+124,
+18
+);
+ctx.bezierCurveTo(
+178,
+28,
+226,
+8,
+274,
+15
+);
+ctx.stroke();
+
+ctx.strokeStyle = gold;
+ctx.lineWidth = 1.05;
+ctx.beginPath();
+ctx.moveTo(14, 14);
+ctx.bezierCurveTo(
+74,
+26,
+136,
+4,
+212,
+20
+);
+ctx.stroke();
+
+drawVolute(ctx, 272, 14, -0.15, 0.78, ink);
+drawVolute(ctx, 210, 19, 0.2, 0.62, gold);
+
+drawOrnamentLeaf(ctx, 56, 18, 1.38, 0.68);
+drawOrnamentLeaf(ctx, 146, 19, 1.52, 0.64);
+drawOrnamentLeaf(ctx, 222, 16, 1.58, 0.56);
+
+drawOrnamentHop(ctx, 30, 22, -0.58, 0.66);
+drawOrnamentHop(ctx, 98, 20, -0.22, 0.64);
+drawOrnamentHop(ctx, 184, 18, -0.12, 0.58);
+
+ctx.restore();
+}
+
+// draw symmetric filigree hop crest
+// crowns scoreboard or logo underline
+function drawHopStripOrnament(
+ctx,
+cx,
+cy,
+halfW,
+sc
+) {
+ctx.save();
+ctx.translate(cx, cy);
+ctx.scale(sc, sc);
+ctx.globalAlpha = 0.84;
+
+var ink = '#163c27';
+var gold = 'rgba(181,139,66,0.82)';
+
+var sides = [-1, 1];
+for (var s = 0; s < sides.length; s++) {
+ctx.save();
+ctx.scale(sides[s], 1);
+
+ctx.strokeStyle = ink;
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.moveTo(6, 0);
+ctx.bezierCurveTo(
+halfW * 0.34,
+-12,
+halfW * 0.68,
+9,
+halfW,
+-3
+);
+ctx.stroke();
+
+ctx.strokeStyle = gold;
+ctx.lineWidth = 1.05;
+ctx.beginPath();
+ctx.moveTo(12, 2);
+ctx.bezierCurveTo(
+halfW * 0.42,
+8,
+halfW * 0.72,
+-10,
+halfW * 0.88,
+2
+);
+ctx.stroke();
+
+drawVolute(ctx, halfW - 2, -3, -0.25, 0.72, ink);
+drawOrnamentLeaf(
+ctx,
+halfW * 0.48,
+-3,
+1.42,
+0.64
+);
+drawOrnamentHop(
+ctx,
+halfW * 0.28,
+2,
+-0.75,
+0.58
+);
+ctx.restore();
+}
+
+drawOrnamentHop(ctx, 0, 5, 0, 0.72);
 ctx.restore();
 }
 
@@ -513,7 +789,7 @@ ctx.fillText('W', -rad - 12, 0);
 ctx.restore();
 }
 
-// draw heritage frame and lush hop vines
+// draw heritage frame and hop ornament
 // keeps map and text totally unobstructed
 function drawPubDecor(ctx) {
 ctx.save();
@@ -555,101 +831,38 @@ Math.PI * 2
 ctx.fill();
 }
 
-drawCompassRose(ctx, 1716, 886, 48);
-
-// bottom-right rich hop vine corner
-// frames southeast sea clear of greece
-ctx.strokeStyle = '#1b4d32';
-ctx.lineWidth = 2.6;
-ctx.beginPath();
-ctx.moveTo(1892, 848);
-ctx.quadraticCurveTo(1884, 988, 1848, 1028);
-ctx.quadraticCurveTo(1802, 1054, 1682, 1052);
-ctx.stroke();
-
-drawHopTendril(ctx, 1682, 1052, 2.9, 1.0);
-drawHopTendril(ctx, 1892, 848, -1.75, 0.95);
-
-drawHopLeaf(ctx, 1874, 886, -0.55, 0.95);
-drawHopLeaf(ctx, 1870, 956, -0.95, 1.08);
-drawHopLeaf(ctx, 1838, 1026, -2.2, 1.15);
-drawHopLeaf(ctx, 1776, 1044, -2.75, 1.0);
-drawHopLeaf(ctx, 1720, 1048, -3.0, 0.85);
-
-drawHopCone(ctx, 1872, 916, 0.25, 0.96);
-drawHopCone(ctx, 1846, 958, 0.65, 1.08);
-drawHopCone(ctx, 1876, 992, 0.15, 1.02);
-drawHopCone(ctx, 1824, 1004, 1.05, 1.12);
-drawHopCone(ctx, 1852, 1034, 0.65, 0.98);
-drawHopCone(ctx, 1784, 1028, 1.35, 1.04);
-drawHopCone(ctx, 1738, 1042, 1.55, 0.9);
-
-// top-left hop sprig above riddle card
-// stays neatly above y=64 card edge
-ctx.strokeStyle = '#1b4d32';
-ctx.lineWidth = 2.2;
-ctx.beginPath();
-ctx.moveTo(26, 54);
-ctx.quadraticCurveTo(46, 30, 198, 32);
-ctx.stroke();
-
-drawHopTendril(ctx, 198, 32, -0.15, 0.85);
-drawHopLeaf(ctx, 56, 36, 0.75, 0.78);
-drawHopLeaf(ctx, 104, 34, 1.25, 0.76);
-drawHopLeaf(ctx, 154, 34, 1.55, 0.72);
-
-drawHopCone(ctx, 42, 42, 0.75, 0.74);
-drawHopCone(ctx, 78, 38, 1.15, 0.78);
-drawHopCone(ctx, 118, 37, 1.35, 0.75);
-drawHopCone(ctx, 158, 36, 1.48, 0.68);
-
-// top-right sweeping hop corner bine
-// fills open sea east of finland cleanly
-ctx.strokeStyle = '#1b4d32';
-ctx.lineWidth = 2.4;
-ctx.beginPath();
-ctx.moveTo(1716, 28);
-ctx.quadraticCurveTo(1856, 28, 1878, 72);
-ctx.quadraticCurveTo(1892, 168, 1882, 314);
-ctx.stroke();
-
-drawHopTendril(ctx, 1716, 28, 3.05, 0.9);
-drawHopTendril(ctx, 1882, 314, 1.55, 0.85);
-
-drawHopLeaf(ctx, 1768, 36, -1.35, 0.86);
-drawHopLeaf(ctx, 1848, 52, -0.85, 0.96);
-drawHopLeaf(ctx, 1874, 138, -0.75, 0.88);
-drawHopLeaf(ctx, 1874, 232, -1.05, 0.84);
-
-drawHopCone(ctx, 1746, 40, -1.35, 0.82);
-drawHopCone(ctx, 1796, 42, -1.05, 0.9);
-drawHopCone(ctx, 1848, 62, -0.45, 0.98);
-drawHopCone(ctx, 1870, 104, 0.25, 0.92);
-drawHopCone(ctx, 1864, 166, 0.55, 0.88);
-drawHopCone(ctx, 1876, 218, 0.25, 0.86);
-drawHopCone(ctx, 1866, 272, 0.48, 0.78);
+drawCompassRose(ctx, 1724, 888, 46);
+drawHopCornerOrnament(
+ctx,
+W - 19,
+H - 19,
+-1,
+-1,
+1.02
+);
+drawHopCornerOrnament(
+ctx,
+W - 19,
+19,
+-1,
+1,
+0.96
+);
+drawTopLeftHopScroll(ctx);
 
 ctx.restore();
 }
 
-// draw hop swag crest on scoreboard top
-// uses three hop cones and flared leaves
+// draw filigree hop crest on scoreboard
+// matches engraved botanical pub border
 function drawPubScoreCrest(ctx, x, y, w) {
-var cx = x + w / 2;
-ctx.save();
-ctx.strokeStyle = '#1b4d32';
-ctx.lineWidth = 2;
-ctx.beginPath();
-ctx.moveTo(cx - 46, y - 2);
-ctx.quadraticCurveTo(cx, y - 8, cx + 46, y - 2);
-ctx.stroke();
-
-drawHopLeaf(ctx, cx - 26, y - 4, -0.95, 0.56);
-drawHopLeaf(ctx, cx + 26, y - 4, 0.95, 0.56);
-drawHopCone(ctx, cx - 20, y - 1, -1.2, 0.58);
-drawHopCone(ctx, cx + 20, y - 1, 1.2, 0.58);
-drawHopCone(ctx, cx, y - 2, 0, 0.64);
-ctx.restore();
+drawHopStripOrnament(
+ctx,
+x + w / 2,
+y - 2,
+112,
+0.76
+);
 }
 
 // draw sea background and theme decor
