@@ -9,6 +9,18 @@ var questions = require('./questions.cjs');
 
 var router = express.Router();
 
+// block browser and webview caching on api
+// stops older android tv webviews freezing
+router.use('/api', function (req, res, next) {
+res.setHeader(
+'Cache-Control',
+'no-store, no-cache, must-revalidate'
+);
+res.setHeader('Pragma', 'no-cache');
+res.setHeader('Expires', '0');
+next();
+});
+
 // find local wifi ipv4 address
 // helps host open tv url on lan
 function getLocalIp() {
@@ -31,15 +43,39 @@ return net.address;
 return '127.0.0.1';
 }
 
-// wrap action handler with json reply
-// returns updated state on every call
+// read pin from header or query string
+// lets download links pass pin cleanly
+function readReqPin(req) {
+return (
+req.get('X-Host-Pin') ||
+(req.query && req.query.pin) ||
+''
+);
+}
+
+// guard host routes when pin is enabled
+// passes straight through when pin is off
+function requireHostPin(req, res, next) {
+if (game.checkHostPin(readReqPin(req))) {
+next();
+return;
+}
+res.status(401).json({
+ok: false,
+pinRequired: true,
+error: 'PIN required'
+});
+}
+
+// wrap action route with json reply
+// returns updated host state on success
 function runAction(fn) {
 return function (req, res) {
 try {
 fn(req, res);
 res.json({
 ok: true,
-state: game.getPublicState()
+state: game.getHostState()
 });
 } catch (err) {
 res.status(400).json({
@@ -50,10 +86,72 @@ error: err.message || 'Action error'
 };
 }
 
-// send current full state to clients
-// polled periodically by tv and phone
+// lightweight health check for launchers
+// tells wrapper when server is ready
+router.get('/health', function (req, res) {
+res.json({
+ok: true,
+uptime: Math.floor(process.uptime())
+});
+});
+
+// send redacted tv state to open screen
+// hides secret answers during asking phase
 router.get('/api/state', function (req, res) {
-res.json(game.getPublicState());
+res.json(game.getTvState());
+});
+
+// send full state to host controller
+// protected when optional host pin is on
+router.get(
+'/api/host-state',
+requireHostPin,
+function (req, res) {
+res.json(game.getHostState());
+}
+);
+
+// check entered host pin code
+// returns 401 when pin does not match
+router.post('/api/verify-pin', function (req, res) {
+var b = req.body || {};
+if (game.checkHostPin(b.pin)) {
+res.json({ ok: true });
+return;
+}
+res.status(401).json({
+ok: false,
+pinRequired: true,
+error: 'Wrong PIN'
+});
+});
+
+// set or disable optional host pin code
+// requires current pin if already enabled
+router.post(
+'/api/host-pin',
+requireHostPin,
+runAction(function (req) {
+var b = req.body || {};
+game.setHostPin(b.pin);
+})
+);
+
+// toggle tv sound from waiting screen
+// works without host pin on tv display
+router.post('/api/tv-sound', function (req, res) {
+try {
+game.toggleTvSound();
+res.json({
+ok: true,
+state: game.getTvState()
+});
+} catch (err) {
+res.status(400).json({
+ok: false,
+error: err.message || 'Action error'
+});
+}
 });
 
 // send local lan ip and port
@@ -75,9 +173,12 @@ countries: europe.listCountries()
 });
 
 // send full question list of active pack
-// lets host pick a specific country
-router.get('/api/pack-questions', function (req, res) {
-var state = game.getPublicState();
+// protected because it contains answers
+router.get(
+'/api/pack-questions',
+requireHostPin,
+function (req, res) {
+var state = game.getHostState();
 var file =
 (req.query && req.query.file) ||
 (state.room && state.room.packFile) ||
@@ -88,11 +189,15 @@ ok: true,
 fileName: pack.fileName,
 questions: pack.list
 });
-});
+}
+);
 
 // download raw txt pack or template
 // sends attachment header for browser
-router.get('/api/download-pack', function (req, res) {
+router.get(
+'/api/download-pack',
+requireHostPin,
+function (req, res) {
 var file =
 (req.query && req.query.file) ||
 'christmas_uk.txt';
@@ -103,12 +208,14 @@ res.status(404).send('Pack not found');
 return;
 }
 res.download(full, safe);
-});
+}
+);
 
 // upload custom txt question pack
 // saves file and selects it in room
 router.post(
 '/api/upload-pack',
+requireHostPin,
 function (req, res) {
 try {
 var body = req.body || {};
@@ -116,7 +223,7 @@ var saved = questions.savePackFile(
 body.fileName,
 body.content
 );
-var st = game.getPublicState();
+var st = game.getHostState();
 if (st.room) {
 game.updateSettings({
 packFile: saved.fileName
@@ -125,7 +232,7 @@ packFile: saved.fileName
 res.json({
 ok: true,
 saved: saved,
-state: game.getPublicState()
+state: game.getHostState()
 });
 } catch (err) {
 res.status(400).json({
@@ -138,6 +245,7 @@ error: err.message
 
 router.post(
 '/api/create-room',
+requireHostPin,
 runAction(function (req) {
 var b = req.body || {};
 game.createRoom(b.name, b.lang, b.theme);
@@ -146,13 +254,16 @@ game.createRoom(b.name, b.lang, b.theme);
 
 router.post(
 '/api/select-room',
+requireHostPin,
 runAction(function (req) {
-game.selectRoom(req.body.roomId);
+var b = req.body || {};
+game.selectRoom(b.roomId);
 })
 );
 
 router.post(
 '/api/leave-room',
+requireHostPin,
 runAction(function () {
 game.leaveRoom();
 })
@@ -160,20 +271,25 @@ game.leaveRoom();
 
 router.post(
 '/api/delete-room',
+requireHostPin,
 runAction(function (req) {
-game.deleteRoom(req.body.roomId);
+var b = req.body || {};
+game.deleteRoom(b.roomId);
 })
 );
 
 router.post(
 '/api/rename-room',
+requireHostPin,
 runAction(function (req) {
-game.renameRoom(req.body.name);
+var b = req.body || {};
+game.renameRoom(b.name);
 })
 );
 
 router.post(
 '/api/settings',
+requireHostPin,
 runAction(function (req) {
 game.updateSettings(req.body || {});
 })
@@ -181,37 +297,43 @@ game.updateSettings(req.body || {});
 
 router.post(
 '/api/add-team',
+requireHostPin,
 runAction(function (req) {
-game.addTeam(req.body.name);
+var b = req.body || {};
+game.addTeam(b.name);
 })
 );
 
 router.post(
 '/api/remove-team',
+requireHostPin,
 runAction(function (req) {
-game.removeTeam(req.body.teamId);
+var b = req.body || {};
+game.removeTeam(b.teamId);
 })
 );
 
 router.post(
 '/api/set-active-team',
+requireHostPin,
 runAction(function (req) {
-game.setActiveTeam(req.body.teamId);
+var b = req.body || {};
+game.setActiveTeam(b.teamId);
 })
 );
 
 router.post(
 '/api/adjust-score',
+requireHostPin,
 runAction(function (req) {
-game.adjustScore(
-req.body.teamId,
-req.body.delta
-);
+var b = req.body || {};
+game.adjustScore(b.teamId, b.delta);
 })
 );
 
 router.post(
 '/api/start-tv',
+requireHostPin,
 runAction(function () {
 game.startSessionOnTv();
 })
@@ -219,6 +341,7 @@ game.startSessionOnTv();
 
 router.post(
 '/api/new-round',
+requireHostPin,
 runAction(function () {
 game.startNewRound();
 })
@@ -226,6 +349,7 @@ game.startNewRound();
 
 router.post(
 '/api/reset-asked',
+requireHostPin,
 runAction(function () {
 game.resetAskedHistory();
 })
@@ -233,24 +357,27 @@ game.resetAskedHistory();
 
 router.post(
 '/api/draw-question',
+requireHostPin,
 runAction(function (req) {
-game.drawNextQuestion(
-req.body && req.body.number
-);
+var b = req.body || {};
+game.drawNextQuestion(b.number);
 })
 );
 
 router.post(
 '/api/wrong-answer',
+requireHostPin,
 runAction(function (req) {
+var b = req.body || {};
 game.recordWrongAnswer(
-Boolean(req.body && req.body.advanceTurn)
+Boolean(b.advanceTurn)
 );
 })
 );
 
 router.post(
 '/api/distance-hint',
+requireHostPin,
 runAction(function (req) {
 var b = req.body || {};
 game.giveDistanceHint(
@@ -262,6 +389,7 @@ b.manualTier
 
 router.post(
 '/api/reveal-part2',
+requireHostPin,
 runAction(function () {
 game.revealPart2();
 })
@@ -269,24 +397,25 @@ game.revealPart2();
 
 router.post(
 '/api/correct-answer',
+requireHostPin,
 runAction(function (req) {
-game.recordCorrectAnswer(
-req.body && req.body.teamId
-);
+var b = req.body || {};
+game.recordCorrectAnswer(b.teamId);
 })
 );
 
 router.post(
 '/api/skip-question',
+requireHostPin,
 runAction(function (req) {
-game.skipQuestion(
-Boolean(req.body && req.body.reveal)
-);
+var b = req.body || {};
+game.skipQuestion(Boolean(b.reveal));
 })
 );
 
 router.post(
 '/api/next-ready',
+requireHostPin,
 runAction(function () {
 game.nextReady();
 })
@@ -294,21 +423,25 @@ game.nextReady();
 
 router.post(
 '/api/finish-round',
+requireHostPin,
 runAction(function (req) {
-game.finishRound(
-req.body && req.body.teamLabel
-);
+var b = req.body || {};
+game.finishRound(b.teamLabel);
 })
 );
 
 router.post(
 '/api/undo',
+requireHostPin,
 runAction(function () {
 game.undoLast();
 })
 );
 
-router.get('/api/export-json', function (req, res) {
+router.get(
+'/api/export-json',
+requireHostPin,
+function (req, res) {
 var data = game.exportAll();
 res.setHeader(
 'Content-Type',
@@ -319,10 +452,12 @@ res.setHeader(
 'attachment; filename="europe-quiz-backup.json"'
 );
 res.send(JSON.stringify(data, null, 2));
-});
+}
+);
 
 router.post(
 '/api/import-json',
+requireHostPin,
 runAction(function (req) {
 var b = req.body || {};
 game.importAll(b.data ? b.data : b);

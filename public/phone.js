@@ -1,5 +1,5 @@
 // host mobile controller in strict es5
-// manages rooms, hints, themes, packs
+// manages rooms, hints, themes, pin
 (function () {
 var state = null;
 var countries = [];
@@ -10,6 +10,18 @@ var newRoomTheme = 'christmas';
 var uiLang = 'uk';
 var confirmTimers = {};
 var errTimer = null;
+var pollBusy = false;
+var lastStateVersion = -1;
+var lastPackFile = '';
+var pinLocked = false;
+var savedPin = '';
+
+try {
+if (window.sessionStorage) {
+savedPin =
+window.sessionStorage.getItem('hostPin') || '';
+}
+} catch (e) {}
 
 // fetch dom node by id shorthand
 // keeps wiring readable on narrow line
@@ -17,11 +29,40 @@ function $(id) {
 return document.getElementById(id);
 }
 
+// escape untrusted text before html
+// stops xss and broken markup in ui
+function esc(val) {
+return String(val == null ? '' : val)
+.replace(/&/g, '&amp;')
+.replace(/</g, '&lt;')
+.replace(/>/g, '&gt;')
+.replace(/"/g, '&quot;')
+.replace(/'/g, '&#39;');
+}
+
+// persist host pin in session storage
+// avoids re-typing on page refresh
+function saveSessionPin(pin) {
+savedPin = String(pin || '');
+try {
+if (window.sessionStorage) {
+if (savedPin) {
+window.sessionStorage.setItem(
+'hostPin',
+savedPin
+);
+} else {
+window.sessionStorage.removeItem('hostPin');
+}
+}
+} catch (e) {}
+}
+
 // show temporary error banner at top
 // auto-hides after 4.5 seconds
 function showError(msg) {
 var b = $('error-banner');
-b.innerHTML = msg || 'Error';
+b.textContent = msg || 'Error';
 b.style.display = 'block';
 if (errTimer) clearTimeout(errTimer);
 errTimer = setTimeout(function () {
@@ -29,8 +70,51 @@ b.style.display = 'none';
 }, 4500);
 }
 
+// switch ui into pin unlock lock screen
+// clears invalid cached pin on 401
+function enterPinLock(errMsg) {
+pinLocked = true;
+saveSessionPin('');
+var info = getT();
+applyI18n(info.lang, info.t);
+$('sticky-slot').style.display = 'none';
+$('room-header').style.display = 'none';
+$('screen-rooms').style.display = 'none';
+$('screen-live').style.display = 'none';
+$('screen-settings').style.display = 'none';
+$('screen-pin').style.display = 'block';
+var sndBtn = $('btn-tv-sound');
+if (sndBtn) sndBtn.style.display = 'none';
+if (errMsg) {
+showError(errMsg);
+}
+}
+
+// apply fresh host state and sync pack
+// ignores stale out-of-order responses
+function applyHostState(next, forceRender) {
+if (!next) return;
+var ver = next.stateVersion || 0;
+if (!forceRender && ver < lastStateVersion) {
+return;
+}
+var changed =
+forceRender || ver !== lastStateVersion;
+lastStateVersion = ver;
+state = next;
+var nextPack =
+(next.room && next.room.packFile) || '';
+if (nextPack && nextPack !== lastPackFile) {
+lastPackFile = nextPack;
+loadPackQuestions();
+}
+if (changed) {
+render();
+}
+}
+
 // send xhr json request to api route
-// updates local state on success
+// attaches host pin header when set
 function apiPost(url, body, cb) {
 var xhr = new XMLHttpRequest();
 xhr.open('POST', url, true);
@@ -38,17 +122,24 @@ xhr.setRequestHeader(
 'Content-Type',
 'application/json;charset=UTF-8'
 );
+if (savedPin) {
+xhr.setRequestHeader('X-Host-Pin', savedPin);
+}
 xhr.onreadystatechange = function () {
 if (xhr.readyState !== 4) return;
 try {
 var res = JSON.parse(xhr.responseText);
+if (xhr.status === 401 && res.pinRequired) {
+enterPinLock(res.error);
+return;
+}
 if (!res.ok) {
 showError(res.error || 'Error');
 return;
 }
+pinLocked = false;
 if (res.state) {
-state = res.state;
-render();
+applyHostState(res.state, true);
 }
 if (cb) cb(res);
 } catch (e) {
@@ -59,15 +150,26 @@ xhr.send(JSON.stringify(body || {}));
 }
 
 // send xhr get request for json data
-// used for state, ip, and countries
-function apiGet(url, cb) {
+// passes host pin and catches 401 lock
+function apiGet(url, cb, onDone) {
 var xhr = new XMLHttpRequest();
 xhr.open('GET', url, true);
+if (savedPin) {
+xhr.setRequestHeader('X-Host-Pin', savedPin);
+}
 xhr.onreadystatechange = function () {
-if (
-xhr.readyState === 4 &&
-xhr.status === 200
-) {
+if (xhr.readyState !== 4) return;
+if (onDone) onDone();
+if (xhr.status === 401) {
+try {
+var errRes = JSON.parse(xhr.responseText);
+if (errRes && errRes.pinRequired) {
+enterPinLock();
+return;
+}
+} catch (e) {}
+}
+if (xhr.status === 200) {
 try {
 cb(JSON.parse(xhr.responseText));
 } catch (e) {}
@@ -83,7 +185,8 @@ var key = btn.id || label;
 var curLang =
 (state && state.room && state.room.lang) ||
 uiLang;
-var t = window.APP_I18N[curLang] ||
+var t =
+window.APP_I18N[curLang] ||
 window.APP_I18N.uk;
 if (confirmTimers[key]) {
 clearTimeout(confirmTimers[key]);
@@ -95,7 +198,7 @@ btn.className = btn.className.replace(
 fn();
 return;
 }
-btn.innerHTML = t.confirmAgain;
+btn.textContent = t.confirmAgain;
 btn.className += ' btn-confirming';
 confirmTimers[key] = setTimeout(function () {
 delete confirmTimers[key];
@@ -121,6 +224,7 @@ renderCountryChips();
 // load questions for picker list
 // updates when active pack changes
 function loadPackQuestions() {
+if (pinLocked) return;
 apiGet('/api/pack-questions', function (res) {
 if (res && res.questions) {
 packQuestions = res.questions;
@@ -145,8 +249,8 @@ t: window.APP_I18N[lang]
 // apply localized labels across ui
 // updates buttons, hints, placeholders
 function applyI18n(lang, t) {
-$('lbl-tv-addr').innerHTML = t.tvAddr;
-$('btn-switch-tv').innerHTML = t.btnTv;
+$('lbl-tv-addr').textContent = t.tvAddr;
+$('btn-switch-tv').textContent = t.btnTv;
 $('btn-lang-uk').className =
 lang === 'uk'
 ? 'lang-pill active'
@@ -156,154 +260,169 @@ lang === 'en'
 ? 'lang-pill active'
 : 'lang-pill';
 
-$('lbl-rooms-title').innerHTML =
+$('lbl-pin-lock-title').textContent =
+t.pinLockTitle;
+$('lbl-pin-lock-desc').textContent =
+t.pinLockDesc;
+$('input-unlock-pin').placeholder = t.pinPh;
+$('btn-unlock-pin').textContent =
+t.btnUnlockPin;
+
+$('lbl-rooms-title').textContent =
 t.roomsTitle;
-$('lbl-rooms-desc').innerHTML =
+$('lbl-rooms-desc').textContent =
 t.roomsDesc;
 $('new-room-name').placeholder =
 t.newRoomPh;
-$('btn-create-room').innerHTML =
+$('btn-create-room').textContent =
 t.btnCreateRoom;
-$('new-theme-std').innerHTML =
+$('new-theme-std').textContent =
 t.themeStandard;
-$('new-theme-dark').innerHTML =
+$('new-theme-dark').textContent =
 t.themeDark;
-$('new-theme-xmas').innerHTML =
+$('new-theme-xmas').textContent =
 t.themeChristmas;
-$('new-theme-pub').innerHTML =
+$('new-theme-pub').textContent =
 t.themePub;
-$('lbl-saved-rooms').innerHTML =
+$('lbl-saved-rooms').textContent =
 t.savedRooms;
-$('lbl-backup-title').innerHTML =
+$('lbl-backup-title').textContent =
 t.backupTitle;
-$('lbl-backup-desc').innerHTML =
+$('lbl-backup-desc').textContent =
 t.backupDesc;
-$('btn-export-json').innerHTML =
+$('btn-export-json').textContent =
 t.btnExport;
-$('btn-import-json').innerHTML =
+$('btn-import-json').textContent =
 t.btnImport;
 
-$('sticky-hint').innerHTML =
+$('sticky-hint').textContent =
 t.activeTeamHint;
-$('lbl-phase').innerHTML = t.phaseLbl;
-$('lbl-map').innerHTML = t.mapLbl;
-$('lbl-theme-bar').innerHTML =
+$('lbl-phase').textContent = t.phaseLbl;
+$('lbl-map').textContent = t.mapLbl;
+$('lbl-theme-bar').textContent =
 t.themeBarTitle;
-$('live-theme-std').innerHTML =
+$('live-theme-std').textContent =
 t.themeStandard;
-$('live-theme-dark').innerHTML =
+$('live-theme-dark').textContent =
 t.themeDark;
-$('live-theme-xmas').innerHTML =
+$('live-theme-xmas').textContent =
 t.themeChristmas;
-$('live-theme-pub').innerHTML =
+$('live-theme-pub').textContent =
 t.themePub;
-$('lbl-sb-pos').innerHTML = t.sbPosTitle;
-$('sb-bottom').innerHTML = t.sbBottom;
-$('sb-hidden').innerHTML = t.sbHidden;
+$('lbl-sb-pos').textContent = t.sbPosTitle;
+$('sb-bottom').textContent = t.sbBottom;
+$('sb-hidden').textContent = t.sbHidden;
 
 $('input-add-team').placeholder =
 t.addTeamPh;
-$('btn-add-team').innerHTML = t.btnAddTeam;
-$('lbl-wait-title').innerHTML =
+$('btn-add-team').textContent = t.btnAddTeam;
+$('lbl-wait-title').textContent =
 t.waitingCardTitle;
-$('lbl-wait-desc').innerHTML =
+$('lbl-wait-desc').textContent =
 t.waitingCardDesc;
-$('btn-start-tv').innerHTML = t.btnStartTv;
-$('lbl-draw-title').innerHTML =
+$('btn-start-tv').textContent = t.btnStartTv;
+$('lbl-draw-title').textContent =
 t.drawCardTitle;
-$('lbl-draw-desc').innerHTML =
+$('lbl-draw-desc').textContent =
 t.drawCardDesc;
-$('btn-draw-next').innerHTML =
+$('btn-draw-next').textContent =
 t.btnDrawNext;
-$('btn-toggle-picker').innerHTML =
+$('btn-toggle-picker').textContent =
 t.btnPickCountry;
 
-$('lbl-host-eyes').innerHTML =
+$('lbl-host-eyes').textContent =
 t.hostEyesOnly;
-$('btn-correct').innerHTML = t.btnCorrect;
-$('btn-wrong-stay').innerHTML =
+$('btn-correct').textContent = t.btnCorrect;
+$('btn-wrong-stay').textContent =
 t.btnWrongStay;
-$('btn-wrong-pass').innerHTML =
+$('btn-wrong-pass').textContent =
 t.btnWrongPass;
-$('lbl-hint-title').innerHTML =
+$('lbl-hint-title').textContent =
 t.hintBoxTitle;
 $('hint-country-search').placeholder =
 t.hintSearchPh;
-$('lbl-manual-hint').innerHTML =
+$('lbl-manual-hint').textContent =
 t.hintManualLbl;
-$('btn-hint-neighbor').innerHTML =
+$('btn-hint-neighbor').textContent =
 t.btnManualNeighbor;
-$('btn-hint-close').innerHTML =
+$('btn-hint-close').textContent =
 t.btnManualClose;
-$('btn-hint-far').innerHTML =
+$('btn-hint-far').textContent =
 t.btnManualFar;
-$('btn-reveal-part2').innerHTML =
+$('btn-reveal-part2').textContent =
 t.btnRevealPart2;
-$('part2-locked-tip').innerHTML =
+$('part2-locked-tip').textContent =
 t.part2LockedTip;
-$('btn-skip-reveal').innerHTML =
+$('btn-skip-reveal').textContent =
 t.btnSkipReveal;
-$('btn-skip-next').innerHTML =
+$('btn-skip-next').textContent =
 t.btnSkipNext;
-$('revealed-title').innerHTML =
+$('revealed-title').textContent =
 t.tvCorrectTitle;
-$('btn-next-ready').innerHTML =
+$('btn-next-ready').textContent =
 t.btnNextQuestionPhase;
-$('exhausted-title').innerHTML =
+$('exhausted-title').textContent =
 t.exhaustedTitle;
-$('exhausted-desc').innerHTML =
+$('exhausted-desc').textContent =
 t.exhaustedDesc;
-$('btn-exhausted-pack').innerHTML =
+$('btn-exhausted-pack').textContent =
 t.btnPickOtherPack;
-$('btn-exhausted-reset').innerHTML =
+$('btn-exhausted-reset').textContent =
 t.btnResetContinue;
-$('finished-title').innerHTML =
+$('finished-title').textContent =
 t.phaseFinished;
-$('btn-new-round-fin').innerHTML =
+$('btn-new-round-fin').textContent =
 t.btnNewRound;
-$('btn-undo').innerHTML = t.btnUndo;
+$('btn-undo').textContent = t.btnUndo;
 if (!confirmTimers['btn-new-round-live']) {
-$('btn-new-round-live').innerHTML =
+$('btn-new-round-live').textContent =
 t.btnNewRound;
 }
-$('btn-switch-room-live').innerHTML =
+$('btn-switch-room-live').textContent =
 t.btnSwitchRoom;
 
-$('lbl-set-mode').innerHTML =
+$('lbl-set-mode').textContent =
 t.setModeTitle;
-$('lbl-set-mode-desc').innerHTML =
+$('lbl-set-mode-desc').textContent =
 t.setModeDesc;
-$('mode-teams-btn').innerHTML = t.modeTeams;
-$('mode-coop-btn').innerHTML = t.modeCoop;
-$('lbl-set-pack').innerHTML =
+$('mode-teams-btn').textContent = t.modeTeams;
+$('mode-coop-btn').textContent = t.modeCoop;
+$('lbl-set-pack').textContent =
 t.setPackTitle;
-$('lbl-set-pack-desc').innerHTML =
+$('lbl-set-pack-desc').textContent =
 t.setPackDesc;
-$('btn-upload-pack').innerHTML =
+$('btn-upload-pack').textContent =
 t.btnUploadPack;
-$('btn-download-pack').innerHTML =
+$('btn-download-pack').textContent =
 t.btnDownloadPack;
-$('btn-reset-asked').innerHTML =
+$('btn-reset-asked').textContent =
 t.btnResetAsked;
-$('lbl-set-order').innerHTML =
+$('lbl-set-order').textContent =
 t.setOrderTitle;
-$('btn-order-random').innerHTML =
+$('btn-order-random').textContent =
 t.orderRandom;
-$('btn-order-seq').innerHTML = t.orderSeq;
-$('btn-tv-q-on').innerHTML = t.tvShowQ;
-$('btn-tv-q-off').innerHTML = t.tvHideQ;
-$('btn-bonus-on').innerHTML = t.bonusOn;
-$('btn-bonus-off').innerHTML = t.bonusOff;
-$('lbl-set-teams').innerHTML =
+$('btn-order-seq').textContent = t.orderSeq;
+$('btn-tv-q-on').textContent = t.tvShowQ;
+$('btn-tv-q-off').textContent = t.tvHideQ;
+$('btn-bonus-on').textContent = t.bonusOn;
+$('btn-bonus-off').textContent = t.bonusOff;
+$('lbl-set-teams').textContent =
 t.setTeamsTitle;
-$('lbl-set-room').innerHTML = t.setRoomTitle;
+$('lbl-set-room').textContent = t.setRoomTitle;
 $('input-rename-room').placeholder =
 t.renamePh;
-$('btn-rename-room').innerHTML = t.btnRename;
+$('btn-rename-room').textContent = t.btnRename;
 if (!confirmTimers['btn-delete-room']) {
-$('btn-delete-room').innerHTML =
+$('btn-delete-room').textContent =
 t.btnDeleteRoom;
 }
+$('lbl-set-pin').textContent = t.setPinTitle;
+$('lbl-set-pin-desc').textContent =
+t.setPinDesc;
+$('input-set-pin').placeholder = t.pinPh;
+$('btn-save-pin').textContent = t.btnSavePin;
+$('btn-disable-pin').textContent =
+t.btnDisablePin;
 }
 
 // render country chips for distance hint
@@ -342,7 +461,7 @@ btn.className =
 tried.indexOf(c.code) !== -1
 ? 'country-chip tried'
 : 'country-chip';
-btn.innerHTML = c.code + ' ' + name;
+btn.textContent = c.code + ' ' + name;
 btn.setAttribute('data-code', c.code);
 btn.onclick = function () {
 var gc = this.getAttribute('data-code');
@@ -355,7 +474,7 @@ box.appendChild(btn);
 }
 
 // render selectable question list
-// allows host to pick specific country
+// escapes question text cleanly
 function renderQuestionPicker() {
 var box = $('question-picker-list');
 if (!box) return;
@@ -385,13 +504,13 @@ btn.disabled = isPainted;
 btn.setAttribute('data-num', q.number);
 btn.innerHTML =
 '<b>#' +
-q.number +
+esc(q.number) +
 ' [' +
-q.country +
+esc(q.country) +
 (isPainted ? ' ✓' : '') +
 ']</b> ' +
 (q.hasPart2 ? '★½ ' : '') +
-q.part1.slice(0, 56) +
+esc(q.part1.slice(0, 56)) +
 '…';
 btn.onclick = function () {
 var num = this.getAttribute('data-num');
@@ -407,16 +526,18 @@ box.appendChild(btn);
 }
 
 // render rooms selector list
-// builds open and delete cards
+// builds open and delete cards safely
 function renderRooms(t) {
 var box = $('rooms-list');
 var list =
 (state && state.roomsSummary) || [];
+var maxC =
+(state && state.totalCountries) || 37;
 box.innerHTML = '';
 if (list.length === 0) {
 box.innerHTML =
 '<div class="muted">' +
-t.noRooms +
+esc(t.noRooms) +
 '</div>';
 return;
 }
@@ -426,15 +547,17 @@ var card = document.createElement('div');
 card.className = 'room-card';
 card.innerHTML =
 '<div class="room-card-title">' +
-r.name +
+esc(r.name) +
 '</div>' +
 '<div class="room-card-meta">#' +
-r.gameNumber +
+esc(r.gameNumber) +
 ' • ' +
-r.theme +
+esc(r.theme) +
 ' • ' +
-r.paintedCount +
-'/37</div>';
+esc(r.paintedCount) +
+'/' +
+esc(maxC) +
+'</div>';
 var row = document.createElement('div');
 row.className = 'row-list';
 row.style.marginBottom = '0';
@@ -442,7 +565,7 @@ row.style.marginBottom = '0';
 var openBtn = document.createElement('button');
 openBtn.type = 'button';
 openBtn.className = 'pill-btn selected';
-openBtn.innerHTML = t.btnOpenRoom;
+openBtn.textContent = t.btnOpenRoom;
 openBtn.setAttribute('data-id', r.id);
 openBtn.onclick = function () {
 apiPost('/api/select-room', {
@@ -453,7 +576,7 @@ roomId: this.getAttribute('data-id')
 var delBtn = document.createElement('button');
 delBtn.type = 'button';
 delBtn.className = 'pill-btn';
-delBtn.innerHTML = t.btnDelete;
+delBtn.textContent = t.btnDelete;
 delBtn.setAttribute('data-id', r.id);
 delBtn.onclick = function () {
 var rid = this.getAttribute('data-id');
@@ -498,7 +621,7 @@ active = room.teams[0];
 if (active) {
 $('sticky-dot').style.background =
 active.color;
-$('sticky-label').innerHTML =
+$('sticky-label').textContent =
 active.name +
 ' (' +
 active.score +
@@ -506,7 +629,7 @@ active.score +
 active.countries +
 ' 🗺)';
 } else {
-$('sticky-label').innerHTML = t.selectTeam;
+$('sticky-label').textContent = t.selectTeam;
 }
 var dd = $('sticky-dropdown');
 dd.innerHTML = '';
@@ -521,11 +644,11 @@ active && tm.id === active.id
 item.setAttribute('data-tid', tm.id);
 item.innerHTML =
 '<span><span class="color-dot" style="display:inline-block;margin-right:6px;background:' +
-tm.color +
+esc(tm.color) +
 ';"></span>' +
-tm.name +
+esc(tm.name) +
 '</span><span>' +
-tm.score +
+esc(tm.score) +
 ' pts</span>';
 item.onclick = function () {
 dd.style.display = 'none';
@@ -540,7 +663,8 @@ dd.appendChild(item);
 // render full phone ui from state
 // switches rooms, live, and settings
 function render() {
-if (!state) return;
+if (pinLocked || !state) return;
+$('screen-pin').style.display = 'none';
 var info = getT();
 var lang = info.lang;
 var t = info.t;
@@ -561,7 +685,7 @@ return;
 
 if (sndBtn) {
 sndBtn.style.display = '';
-sndBtn.innerHTML = room.tvSound
+sndBtn.textContent = room.tvSound
 ? '🔊'
 : '🔇';
 sndBtn.title = room.tvSound
@@ -574,27 +698,30 @@ sndBtn.className = room.tvSound
 
 $('screen-rooms').style.display = 'none';
 $('room-header').style.display = 'block';
-$('header-room-name').innerHTML = room.name;
+$('header-room-name').textContent = room.name;
 
 var paintedCount = Object.keys(
 (room.round && room.round.painted) || {}
 ).length;
+var maxC = state.totalCountries || 37;
 var leftQ =
 (room.round &&
 room.round.queue &&
 room.round.queue.length) ||
 0;
-$('header-badge').innerHTML =
+$('header-badge').textContent =
 '#' +
 room.gameNumber +
 ' • 🗺 ' +
 paintedCount +
-'/37 • Q ' +
+'/' +
+maxC +
+' • Q ' +
 leftQ +
 '/' +
 (state.packTotal || 0);
 
-$('btn-toggle-settings').innerHTML =
+$('btn-toggle-settings').textContent =
 activeView === 'settings'
 ? t.btnBackLive
 : t.btnSettings;
@@ -622,6 +749,8 @@ renderLive(room, lang, t);
 function renderLive(room, lang, t) {
 var round = room.round || {};
 var phase = round.phase || 'waiting';
+var maxC =
+(state && state.totalCountries) || 37;
 var phaseMap = {
 waiting: t.phaseWaiting,
 ready: t.phaseReady,
@@ -630,14 +759,16 @@ revealed: t.phaseRevealed,
 exhausted: t.phaseExhausted,
 finished: t.phaseFinished
 };
-$('val-phase').innerHTML =
+$('val-phase').textContent =
 phaseMap[phase] || phase;
 var paintedCount = Object.keys(
 round.painted || {}
 ).length;
-$('val-map').innerHTML =
+$('val-map').textContent =
 paintedCount +
-'/37 • Q ' +
+'/' +
+maxC +
+' • Q ' +
 ((round.queue && round.queue.length) || 0);
 
 var sb = room.scoreboardPos || 'bottom';
@@ -670,10 +801,10 @@ room.gameMode === 'coop'
 ? t.coopFinishBtn
 : t.btnFinishRound;
 if (!confirmTimers['btn-finish-round']) {
-$('btn-finish-round').innerHTML = finTxt;
+$('btn-finish-round').textContent = finTxt;
 }
 if (!confirmTimers['btn-exhausted-finish']) {
-$('btn-exhausted-finish').innerHTML = finTxt;
+$('btn-exhausted-finish').textContent = finTxt;
 }
 
 $('btn-undo').disabled = !round.undoSnapshot;
@@ -681,25 +812,25 @@ $('btn-undo').disabled = !round.undoSnapshot;
 if (phase === 'asking' && round.currentQuestion) {
 var cq = round.currentQuestion;
 var valBadge = $('val-q-points');
-valBadge.innerHTML = cq.isHalfValue
+valBadge.textContent = cq.isHalfValue
 ? cq.currentValue + ' pts (½)'
 : cq.currentValue + ' pts';
 valBadge.className = cq.isHalfValue
 ? 'value-badge half'
 : 'value-badge';
 
-$('asking-q-num').innerHTML =
+$('asking-q-num').textContent =
 '#' + cq.number + ' [' + cq.country + ']';
-$('asking-q-part1').innerHTML = cq.part1;
+$('asking-q-part1').textContent = cq.part1;
 
 var p2Box = $('asking-q-part2-box');
 if (cq.hasPart2) {
 p2Box.style.display = 'block';
 p2Box.innerHTML =
 '<b>' +
-t.part2HostLbl +
+esc(t.part2HostLbl) +
 '</b><br>' +
-cq.part2 +
+esc(cq.part2) +
 (cq.part2Revealed
 ? ' <b>[OPEN ON TV]</b>'
 : '');
@@ -718,18 +849,18 @@ break;
 }
 }
 $('asking-answer-box').innerHTML =
-t.answerCountryLbl +
+esc(t.answerCountryLbl) +
 ' ' +
-cName +
+esc(cName) +
 '<br><span style="font-weight:500;color:#cbd5e1;">' +
-cq.answerText +
+esc(cq.answerText) +
 '</span>';
 
 var isCoop = room.gameMode === 'coop';
 $('btn-wrong-pass').style.display = isCoop
 ? 'none'
 : '';
-$('btn-wrong-stay').innerHTML = isCoop
+$('btn-wrong-stay').textContent = isCoop
 ? t.btnWrongCoop
 : t.btnWrongStay;
 
@@ -750,7 +881,7 @@ cq.lastHint.tier === 'neighbor'
 : cq.lastHint.tier === 'close'
 ? t.hintClose
 : t.hintFar;
-lhp.innerHTML =
+lhp.textContent =
 (cq.lastHint.guessedCode
 ? cq.lastHint.guessedCode + ' → '
 : '') + tierLbl;
@@ -775,12 +906,12 @@ if (
 phase === 'revealed' &&
 round.currentQuestion
 ) {
-$('revealed-answer').innerHTML =
+$('revealed-answer').textContent =
 round.currentQuestion.answerText;
 }
 }
 
-// render settings screen packs and teams
+// render settings screen packs, teams, pin
 // lets host switch packs or edit points
 function renderSettings(room, lang, t) {
 $('mode-teams-btn').className =
@@ -804,7 +935,7 @@ pk.file === room.packFile
 ? 'pill-btn selected'
 : 'pill-btn';
 btn.setAttribute('data-file', pk.file);
-btn.innerHTML =
+btn.textContent =
 (lang === 'en' ? pk.labelEn : pk.labelUk) +
 ' (' +
 pk.count +
@@ -864,6 +995,14 @@ room.theme === 'pub'
 ? 'pill-btn selected'
 : 'pill-btn';
 
+var pinOn = Boolean(state && state.pinEnabled);
+$('val-pin-status').textContent = pinOn
+? t.pinStatusOn
+: t.pinStatusOff;
+$('btn-disable-pin').style.display = pinOn
+? 'block'
+: 'none';
+
 var tList = $('settings-teams-list');
 tList.innerHTML = '';
 if (room.gameMode === 'coop') {
@@ -871,23 +1010,23 @@ var cRow = document.createElement('div');
 cRow.className = 'team-edit-row';
 cRow.innerHTML =
 '<span>' +
-t.coopScoreLbl +
+esc(t.coopScoreLbl) +
 ': <b>' +
-room.coopScore +
+esc(room.coopScore) +
 '</b></span>';
 var cBtns = document.createElement('div');
 cBtns.className = 'team-edit-btns';
 var m10 = document.createElement('button');
 m10.type = 'button';
 m10.className = 'mini-btn';
-m10.innerHTML = '-10';
+m10.textContent = '-10';
 m10.onclick = function () {
 apiPost('/api/adjust-score', { delta: -10 });
 };
 var p10 = document.createElement('button');
 p10.type = 'button';
 p10.className = 'mini-btn';
-p10.innerHTML = '+10';
+p10.textContent = '+10';
 p10.onclick = function () {
 apiPost('/api/adjust-score', { delta: 10 });
 };
@@ -902,11 +1041,11 @@ var row = document.createElement('div');
 row.className = 'team-edit-row';
 row.innerHTML =
 '<div class="team-edit-left"><span class="color-dot" style="background:' +
-tm.color +
+esc(tm.color) +
 '"></span><span>' +
-tm.name +
+esc(tm.name) +
 ' (' +
-tm.score +
+esc(tm.score) +
 ')</span></div>';
 var btns = document.createElement('div');
 btns.className = 'team-edit-btns';
@@ -914,7 +1053,7 @@ btns.className = 'team-edit-btns';
 var bm = document.createElement('button');
 bm.type = 'button';
 bm.className = 'mini-btn';
-bm.innerHTML = '-10';
+bm.textContent = '-10';
 bm.setAttribute('data-tid', tm.id);
 bm.onclick = function () {
 apiPost('/api/adjust-score', {
@@ -926,7 +1065,7 @@ delta: -10
 var bp = document.createElement('button');
 bp.type = 'button';
 bp.className = 'mini-btn';
-bp.innerHTML = '+10';
+bp.textContent = '+10';
 bp.setAttribute('data-tid', tm.id);
 bp.onclick = function () {
 apiPost('/api/adjust-score', {
@@ -938,7 +1077,7 @@ delta: 10
 var bd = document.createElement('button');
 bd.type = 'button';
 bd.className = 'mini-btn';
-bd.innerHTML = '✕';
+bd.textContent = '✕';
 bd.setAttribute('data-tid', tm.id);
 bd.onclick = function () {
 apiPost('/api/remove-team', {
@@ -954,9 +1093,62 @@ tList.appendChild(row);
 }
 }
 
-// wire all static dom event handlers
+// build download url with optional pin
+// keeps pack and json exports working
+function withPinParam(base) {
+if (!savedPin) return base;
+var sep = base.indexOf('?') === -1 ? '?' : '&';
+return (
+base +
+sep +
+'pin=' +
+encodeURIComponent(savedPin)
+);
+}
+
+// wire all static dom clicks and inputs
 // runs once at page startup
 function bindEvents() {
+$('btn-unlock-pin').onclick = function () {
+var entered = $('input-unlock-pin').value.trim();
+if (!entered) return;
+apiPost(
+'/api/verify-pin',
+{ pin: entered },
+function () {
+$('input-unlock-pin').value = '';
+saveSessionPin(entered);
+pinLocked = false;
+lastStateVersion = -1;
+poll(true);
+loadPackQuestions();
+}
+);
+};
+
+$('btn-save-pin').onclick = function () {
+var nextPin = $('input-set-pin').value.trim();
+if (!nextPin) return;
+apiPost(
+'/api/host-pin',
+{ pin: nextPin },
+function () {
+$('input-set-pin').value = '';
+saveSessionPin(nextPin);
+}
+);
+};
+
+$('btn-disable-pin').onclick = function () {
+apiPost(
+'/api/host-pin',
+{ pin: '' },
+function () {
+saveSessionPin('');
+}
+);
+};
+
 $('btn-switch-tv').onclick = function () {
 if (
 window.parent &&
@@ -973,18 +1165,22 @@ window.location.href = '/';
 
 $('btn-lang-uk').onclick = function () {
 uiLang = 'uk';
-if (state && state.room) {
+if (!pinLocked && state && state.room) {
 apiPost('/api/settings', { lang: 'uk' });
 } else {
+var info = getT();
+applyI18n(info.lang, info.t);
 render();
 }
 };
 
 $('btn-lang-en').onclick = function () {
 uiLang = 'en';
-if (state && state.room) {
+if (!pinLocked && state && state.room) {
 apiPost('/api/settings', { lang: 'en' });
 } else {
+var info = getT();
+applyI18n(info.lang, info.t);
 render();
 }
 };
@@ -1266,9 +1462,10 @@ var file =
 state.room &&
 state.room.packFile) ||
 'christmas_uk.txt';
-window.location.href =
+window.location.href = withPinParam(
 '/api/download-pack?file=' +
-encodeURIComponent(file);
+encodeURIComponent(file)
+);
 };
 
 $('btn-upload-pack').onclick = function () {
@@ -1281,10 +1478,16 @@ this.files && this.files[0];
 if (!f) return;
 var reader = new FileReader();
 reader.onload = function (ev) {
-apiPost('/api/upload-pack', {
+apiPost(
+'/api/upload-pack',
+{
 fileName: f.name,
 content: ev.target.result
-});
+},
+function () {
+loadPackQuestions();
+}
+);
 };
 reader.readAsText(f);
 this.value = '';
@@ -1313,7 +1516,9 @@ roomId: rid
 };
 
 $('btn-export-json').onclick = function () {
-window.location.href = '/api/export-json';
+window.location.href = withPinParam(
+'/api/export-json'
+);
 };
 
 $('btn-import-json').onclick = function () {
@@ -1338,24 +1543,32 @@ this.value = '';
 };
 }
 
-// poll state every 1200ms while open
-// keeps tv and host remote synchronized
-function poll() {
-apiGet('/api/state', function (res) {
-state = res;
-render();
-});
+// poll host state every 1200ms while open
+// skips dom redraw when state unchanged
+function poll(force) {
+if (pollBusy || pinLocked) return;
+pollBusy = true;
+apiGet(
+'/api/host-state',
+function (res) {
+applyHostState(res, Boolean(force));
+},
+function () {
+pollBusy = false;
+}
+);
 }
 
 bindEvents();
 loadCountries();
-loadPackQuestions();
 apiGet('/api/ip', function (info) {
 if (info && info.ip) {
-$('host-url-text').innerHTML =
+$('host-url-text').textContent =
 'http://' + info.ip + ':' + info.port;
 }
 });
-poll();
-setInterval(poll, 1200);
+poll(true);
+setInterval(function () {
+poll(false);
+}, 1200);
 })();

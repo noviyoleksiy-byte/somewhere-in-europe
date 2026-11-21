@@ -81,6 +81,34 @@ class="lang-pill"
 </div>
 
 <div
+id="screen-pin"
+class="card"
+style="display: none;margin-top: 24px;"
+>
+<div
+id="lbl-pin-lock-title"
+class="panel-title"
+>Host PIN Required</div>
+<div
+id="lbl-pin-lock-desc"
+class="setting-desc"
+></div>
+<div class="inline-form">
+<input
+id="input-unlock-pin"
+type="password"
+inputmode="numeric"
+autocomplete="off"
+>
+<button
+id="btn-unlock-pin"
+type="button"
+class="btn btn-small btn-primary"
+>Unlock</button>
+</div>
+</div>
+
+<div
 id="screen-rooms"
 style="display: none;"
 >
@@ -706,6 +734,42 @@ id="btn-delete-room"
 type="button"
 class="btn btn-danger"
 >🗑 Delete Room</button>
+</div>
+
+<div class="card">
+<div
+id="lbl-set-pin"
+class="panel-title"
+>6. Host PIN Protection</div>
+<div
+id="lbl-set-pin-desc"
+class="setting-desc"
+></div>
+<div
+id="val-pin-status"
+class="session-badge"
+style="margin-bottom: 10px;"
+>Status: Off</div>
+<div class="inline-form">
+<input
+id="input-set-pin"
+type="password"
+inputmode="numeric"
+autocomplete="off"
+maxlength="16"
+>
+<button
+id="btn-save-pin"
+type="button"
+class="btn btn-small btn-primary"
+>Save PIN</button>
+</div>
+<button
+id="btn-disable-pin"
+type="button"
+class="btn btn-secondary"
+style="display: none;"
+>Disable PIN</button>
 </div>
 </div>
 

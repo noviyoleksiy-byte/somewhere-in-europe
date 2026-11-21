@@ -123,7 +123,17 @@ tvExhaustedSub: 'Оберіть інший пакет, скиньте істор
 exhaustedTitle: 'Питання в пакеті закінчилися',
 exhaustedDesc: 'Для незафарбованих країн більше не залишилося нових питань у цьому наборі.',
 btnPickOtherPack: '📦 Обрати інший набір питань',
-btnResetContinue: '↺ Скинути історію та продовжити'
+btnResetContinue: '↺ Скинути історію та продовжити',
+pinLockTitle: 'Пульт захищено PIN-кодом',
+pinLockDesc: 'Введіть PIN-код ведучого для керування грою.',
+pinPh: 'PIN-код (мін. 4 символи)',
+btnUnlockPin: '🔓 Відкрити пульт',
+setPinTitle: '6. PIN-код пульта',
+setPinDesc: 'За замовчуванням вимкнено. Захищає пульт і відповіді у спільній Wi-Fi мережі.',
+pinStatusOff: 'Статус: Вимкнено',
+pinStatusOn: 'Статус: Увімкнено',
+btnSavePin: 'Зберегти PIN',
+btnDisablePin: 'Вимкнути PIN'
 },
 en: {
 gameTitle: 'SOMEWHERE IN EUROPE',
@@ -247,6 +257,16 @@ tvExhaustedSub: 'Pick another pack, reset history, or finish round.',
 exhaustedTitle: 'No questions left in pack',
 exhaustedDesc: 'No unasked questions remain for unpainted countries in this pack.',
 btnPickOtherPack: '📦 Choose Another Pack',
-btnResetContinue: '↺ Reset History & Continue'
+btnResetContinue: '↺ Reset History & Continue',
+pinLockTitle: 'Host PIN Required',
+pinLockDesc: 'Enter the host PIN to unlock quiz controls.',
+pinPh: 'PIN code (min 4 chars)',
+btnUnlockPin: '🔓 Unlock Host',
+setPinTitle: '6. Host PIN Protection',
+setPinDesc: 'Off by default. Protects host controls and secret answers on shared Wi-Fi.',
+pinStatusOff: 'Status: Off',
+pinStatusOn: 'Status: Active',
+btnSavePin: 'Save PIN',
+btnDisablePin: 'Disable PIN'
 }
 };
