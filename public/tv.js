@@ -25,12 +25,18 @@ var hostBtn =
 document.getElementById('tv-host-btn');
 var cornerHostBtn =
 document.getElementById('corner-host-btn');
+var secretZone =
+document.getElementById('secret-debug-zone');
 var hostFrame =
 document.getElementById('debug-host-frame');
 
 var latestState = null;
 var lastEventId = 0;
+var hasPolledOnce = false;
 var hostOpen = false;
+var debugUnlocked = false;
+var secretClicks = 0;
+var secretTimer = null;
 var audioCtx = null;
 var audioUnlocked = false;
 var wakeLock = null;
@@ -193,10 +199,58 @@ playTone(1046, 0.55, 0.42, 'sine', 0.18);
 }
 }
 
-// toggle embedded host drawer on tv
-// lets single-screen users control quiz
+// show or hide debug host drawer btns
+// keeps production tv screen clean
+function applyDebugMode(on) {
+debugUnlocked = Boolean(on);
+try {
+if (window.sessionStorage) {
+window.sessionStorage.setItem(
+'tvDebug',
+debugUnlocked ? '1' : '0'
+);
+}
+} catch (e) {}
+if (cornerHostBtn) {
+cornerHostBtn.style.display = debugUnlocked
+? 'block'
+: 'none';
+}
+if (hostBtn) {
+hostBtn.style.display = debugUnlocked
+? 'inline-block'
+: 'none';
+}
+if (!debugUnlocked && hostOpen) {
+hostOpen = false;
+if (hostFrame) {
+hostFrame.style.display = 'none';
+}
+}
+}
+
+// count rapid secret taps to unlock debug
+// five taps toggle hidden host controls
+function registerSecretTap() {
+secretClicks += 1;
+if (secretTimer) clearTimeout(secretTimer);
+secretTimer = setTimeout(function () {
+secretClicks = 0;
+}, 2400);
+if (secretClicks >= 5) {
+secretClicks = 0;
+clearTimeout(secretTimer);
+applyDebugMode(!debugUnlocked);
+}
+}
+
+// load iframe lazily and toggle drawer
+// avoids fetching /host in prod mode
 function toggleHostDrawer() {
-if (!hostFrame) return;
+if (!hostFrame || !debugUnlocked) return;
+if (!hostFrame.getAttribute('src')) {
+hostFrame.setAttribute('src', '/host');
+}
 hostOpen = !hostOpen;
 hostFrame.style.display = hostOpen
 ? 'block'
@@ -218,6 +272,40 @@ hostFrame.style.display = 'none';
 }
 }
 );
+
+document.addEventListener('keydown', function (e) {
+unlockAudio();
+if (
+e &&
+e.ctrlKey &&
+e.shiftKey &&
+(e.key === 'D' || e.key === 'd')
+) {
+applyDebugMode(!debugUnlocked);
+}
+});
+document.addEventListener('touchstart', unlockAudio);
+
+if (secretZone) {
+secretZone.onclick = registerSecretTap;
+}
+if (titleEl) {
+titleEl.onclick = registerSecretTap;
+}
+
+(function checkInitialDebug() {
+var hasQuery =
+window.location.search.indexOf('debug=1') !==
+-1;
+var stored = false;
+try {
+stored =
+window.sessionStorage &&
+window.sessionStorage.getItem('tvDebug') ===
+'1';
+} catch (e) {}
+applyDebugMode(hasQuery || stored);
+})();
 
 if (fsBtn) {
 fsBtn.onclick = function () {
@@ -305,6 +393,14 @@ xhr.responseText
 );
 latestState = next;
 var evs = next.events || [];
+if (!hasPolledOnce) {
+hasPolledOnce = true;
+for (var k = 0; k < evs.length; k++) {
+if (evs[k].id > lastEventId) {
+lastEventId = evs[k].id;
+}
+}
+} else {
 var theme =
 (next.room && next.room.theme) ||
 'standard';
@@ -317,6 +413,7 @@ evs[i]
 );
 }
 playEventSound(evs[i].type, theme);
+}
 }
 }
 syncWaitingOverlay();

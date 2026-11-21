@@ -27,6 +27,15 @@ display: block;
 width: 1920px;
 height: 1080px;
 }
+#secret-debug-zone {
+position: fixed;
+top: 0;
+left: 0;
+width: 96px;
+height: 96px;
+z-index: 1490;
+background: transparent;
+}
 #corner-host-btn {
 position: fixed;
 top: 10px;

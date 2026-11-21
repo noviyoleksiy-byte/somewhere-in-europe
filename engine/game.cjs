@@ -6,11 +6,9 @@ var config = require('./config.cjs');
 var europe = require('./europe.cjs');
 var questions = require('./questions.cjs');
 
-var DATA_DIR = path.join(
-__dirname,
-'..',
-'data'
-);
+var DATA_DIR =
+process.env.DATA_DIR ||
+path.join(__dirname, '..', 'data');
 var DB_FILE = path.join(
 DATA_DIR,
 'state.json'
@@ -178,11 +176,13 @@ var db = loadDb();
 function saveDb() {
 ensureDataDir();
 try {
+var tmp = DB_FILE + '.tmp';
 fs.writeFileSync(
-DB_FILE,
+tmp,
 JSON.stringify(db, null, 2),
 'utf8'
 );
+fs.renameSync(tmp, DB_FILE);
 } catch (err) {
 console.log('save db err:', err);
 }

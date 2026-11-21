@@ -3,14 +3,19 @@
 var fs = require('fs');
 var path = require('path');
 
-var PACKS_DIR = path.join(
+var BUILTIN_DIR = path.join(
 __dirname,
 '..',
 'data',
 'packs'
 );
+var PACKS_DIR = path.join(
+process.env.DATA_DIR ||
+path.join(__dirname, '..', 'data'),
+'packs'
+);
 
-// make packs directory if missing
+// make writable packs directory
 // avoids crash on custom pack upload
 function ensurePacksDir() {
 if (!fs.existsSync(PACKS_DIR)) {
@@ -18,6 +23,29 @@ fs.mkdirSync(PACKS_DIR, {
 recursive: true
 });
 }
+}
+
+// find pack file in custom or builtin
+// returns full disk path or null
+function resolvePackPath(fileName) {
+var safeName = path.basename(
+String(fileName || 'christmas_uk.txt')
+);
+var customPath = path.join(
+PACKS_DIR,
+safeName
+);
+if (fs.existsSync(customPath)) {
+return customPath;
+}
+var builtinPath = path.join(
+BUILTIN_DIR,
+safeName
+);
+if (fs.existsSync(builtinPath)) {
+return builtinPath;
+}
+return null;
 }
 
 // trim blank lines around text block
@@ -120,15 +148,11 @@ return list;
 // load a single pack file by name
 // returns parsed question list
 function loadPackByFile(fileName) {
-ensurePacksDir();
 var safeName = path.basename(
 String(fileName || 'christmas_uk.txt')
 );
-var fullPath = path.join(
-PACKS_DIR,
-safeName
-);
-if (!fs.existsSync(fullPath)) {
+var fullPath = resolvePackPath(safeName);
+if (!fullPath) {
 return {
 fileName: safeName,
 list: []
@@ -178,7 +202,6 @@ count: parsed.length
 // list all available txt packs
 // includes built-in labels and counts
 function listAvailablePacks() {
-ensurePacksDir();
 var labels = {
 'christmas_uk.txt': {
 uk: 'Різдвяні традиції Європи (UA)',
@@ -215,15 +238,46 @@ uk: 'Європа: Культура та факти (EN)',
 en: 'Europe: Culture & Facts (EN)',
 category: 'general',
 lang: 'en'
+},
+'food_uk.txt': {
+uk: 'Кухня та смаки Європи (UA)',
+en: 'European Food & Flavors (UA)',
+category: 'food',
+lang: 'uk'
+},
+'food_en.txt': {
+uk: 'Кухня та смаки Європи (EN)',
+en: 'European Food & Flavors (EN)',
+category: 'food',
+lang: 'en'
+},
+'nature_uk.txt': {
+uk: 'Природа та дива Європи (UA)',
+en: 'Nature & Wonders of Europe (UA)',
+category: 'nature',
+lang: 'uk'
+},
+'nature_en.txt': {
+uk: 'Природа та дива Європи (EN)',
+en: 'Nature & Wonders of Europe (EN)',
+category: 'nature',
+lang: 'en'
 }
 };
-var files = fs.readdirSync(PACKS_DIR);
+var seen = {};
+var dirs = [PACKS_DIR, BUILTIN_DIR];
 var out = [];
-for (var i = 0; i < files.length; i++) {
-var f = files[i];
-if (!/\.txt$/i.test(f)) {
+for (var d = 0; d < dirs.length; d++) {
+if (!fs.existsSync(dirs[d])) {
 continue;
 }
+var files = fs.readdirSync(dirs[d]);
+for (var i = 0; i < files.length; i++) {
+var f = files[i];
+if (!/\.txt$/i.test(f) || seen[f]) {
+continue;
+}
+seen[f] = true;
 var pack = loadPackByFile(f);
 var meta = labels[f] || {
 uk: f,
@@ -240,13 +294,18 @@ lang: meta.lang,
 count: pack.list.length
 });
 }
+}
 var order = [
 'christmas_uk.txt',
 'christmas_en.txt',
 'kids_uk.txt',
 'kids_en.txt',
 'general_uk.txt',
-'general_en.txt'
+'general_en.txt',
+'food_uk.txt',
+'food_en.txt',
+'nature_uk.txt',
+'nature_en.txt'
 ];
 out.sort(function (a, b) {
 var ia = order.indexOf(a.file);
@@ -288,6 +347,7 @@ return queue;
 module.exports = {
 parseQuestionsText: parseQuestionsText,
 loadPackByFile: loadPackByFile,
+resolvePackPath: resolvePackPath,
 savePackFile: savePackFile,
 listAvailablePacks: listAvailablePacks,
 buildQueue: buildQueue

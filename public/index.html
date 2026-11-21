@@ -10,9 +10,14 @@ content="width=device-width, initial-scale=1"
 <link rel="stylesheet" href="tv.css">
 </head>
 <body>
+<div
+id="secret-debug-zone"
+aria-hidden="true"
+></div>
 <button
 id="corner-host-btn"
 type="button"
+style="display: none;"
 >📱 Пульт / Host</button>
 <div id="tv-stage">
 <canvas
@@ -53,13 +58,13 @@ class="wait-btn sound-on"
 id="tv-host-btn"
 type="button"
 class="wait-btn host-accent"
+style="display: none;"
 >📱 ПУЛЬТ ВЕДУЧОГО</button>
 </div>
 </div>
 </div>
 <iframe
 id="debug-host-frame"
-src="/host"
 ></iframe>
 <script src="europe-map.js"></script>
 <script src="tvscale.js"></script>

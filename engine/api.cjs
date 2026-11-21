@@ -97,13 +97,11 @@ var file =
 (req.query && req.query.file) ||
 'christmas_uk.txt';
 var safe = path.basename(String(file));
-var full = path.join(
-__dirname,
-'..',
-'data',
-'packs',
-safe
-);
+var full = questions.resolvePackPath(safe);
+if (!full) {
+res.status(404).send('Pack not found');
+return;
+}
 res.download(full, safe);
 });
 
