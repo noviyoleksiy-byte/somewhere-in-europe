@@ -348,12 +348,19 @@ return null;
 }
 
 // draw single layered botanical hop cone
-// uses rotated oval bracts in pub greens
+// uses stem cap and layered green bracts
 function drawHopCone(ctx, x, y, ang, sc) {
 ctx.save();
 ctx.translate(x, y);
 ctx.rotate(ang);
 ctx.scale(sc, sc);
+
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(0, -18);
+ctx.lineTo(0, -11);
+ctx.stroke();
 
 var tiers = [
 { y: -12, rx: 10, ry: 7, c: '#355f3b' },
@@ -398,9 +405,45 @@ ctx.stroke();
 ctx.restore();
 }
 
-// draw small rowan berry & leaf cluster
-// echoes scarlet berries in brand logo
-function drawRowanCluster(
+// draw three-lobed botanical hop leaf
+// adds crisp dark outline and light veins
+function drawHopLeaf(ctx, x, y, ang, sc) {
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.scale(sc, sc);
+
+ctx.fillStyle = '#245a38';
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 1.4;
+ctx.beginPath();
+ctx.moveTo(0, 12);
+ctx.quadraticCurveTo(-18, 12, -24, -4);
+ctx.quadraticCurveTo(-14, -6, -11, -12);
+ctx.quadraticCurveTo(-8, -22, 0, -28);
+ctx.quadraticCurveTo(8, -22, 11, -12);
+ctx.quadraticCurveTo(14, -6, 24, -4);
+ctx.quadraticCurveTo(18, 12, 0, 12);
+ctx.closePath();
+ctx.fill();
+ctx.stroke();
+
+ctx.strokeStyle = '#5f8d4e';
+ctx.lineWidth = 1.1;
+ctx.beginPath();
+ctx.moveTo(0, 10);
+ctx.lineTo(0, -22);
+ctx.moveTo(0, 2);
+ctx.lineTo(-16, -3);
+ctx.moveTo(0, 2);
+ctx.lineTo(16, -3);
+ctx.stroke();
+ctx.restore();
+}
+
+// draw delicate curling hop bine tendril
+// softens vine tips with botanical spiral
+function drawHopTendril(
 ctx,
 x,
 y,
@@ -411,58 +454,14 @@ ctx.save();
 ctx.translate(x, y);
 ctx.rotate(ang);
 ctx.scale(sc, sc);
-
-ctx.strokeStyle = '#072e1b';
-ctx.lineWidth = 2;
+ctx.strokeStyle = '#2c6a3f';
+ctx.lineWidth = 1.6;
 ctx.beginPath();
-ctx.moveTo(-26, 2);
-ctx.quadraticCurveTo(0, -8, 22, 6);
+ctx.moveTo(0, 0);
+ctx.quadraticCurveTo(12, -10, 20, 0);
+ctx.quadraticCurveTo(26, 8, 18, 12);
+ctx.quadraticCurveTo(12, 14, 14, 7);
 ctx.stroke();
-
-var leaves = [
-{ x: -16, y: -6, a: -0.7 },
-{ x: -6, y: -11, a: -0.35 },
-{ x: -12, y: 8, a: 0.75 },
-{ x: 4, y: -10, a: 0.25 }
-];
-for (var l = 0; l < leaves.length; l++) {
-var lv = leaves[l];
-ctx.save();
-ctx.translate(lv.x, lv.y);
-ctx.rotate(lv.a);
-ctx.fillStyle = '#194d32';
-ctx.beginPath();
-ctx.moveTo(-10, 0);
-ctx.quadraticCurveTo(0, -5, 10, 0);
-ctx.quadraticCurveTo(0, 5, -10, 0);
-ctx.fill();
-ctx.restore();
-}
-
-var berries = [
-{ x: 10, y: 0, r: 4.5, c: '#b91604' },
-{ x: 17, y: 4, r: 4.8, c: '#d81e05' },
-{ x: 12, y: 9, r: 4.5, c: '#f22c08' },
-{ x: 22, y: -2, r: 4.3, c: '#d81e05' },
-{ x: 20, y: 11, r: 4.2, c: '#b91604' }
-];
-for (var b = 0; b < berries.length; b++) {
-var br = berries[b];
-ctx.fillStyle = br.c;
-ctx.beginPath();
-ctx.arc(br.x, br.y, br.r, 0, Math.PI * 2);
-ctx.fill();
-ctx.fillStyle = '#ff642e';
-ctx.beginPath();
-ctx.arc(
-br.x - 1.3,
-br.y - 1.3,
-1.4,
-0,
-Math.PI * 2
-);
-ctx.fill();
-}
 ctx.restore();
 }
 
@@ -534,7 +533,7 @@ ctx.fillText('W', -rad - 12, 0);
 ctx.restore();
 }
 
-// draw heritage frame and pub botanicals
+// draw heritage frame and lush hop vines
 // keeps map and text totally unobstructed
 function drawRowanDecor(ctx) {
 ctx.save();
@@ -576,42 +575,93 @@ Math.PI * 2
 ctx.fill();
 }
 
-drawCompassRose(ctx, 1756, 892, 54);
+drawCompassRose(ctx, 1716, 886, 48);
 
-drawHopCone(ctx, 1848, 1002, -0.55, 1.15);
-drawHopCone(ctx, 1812, 1022, -1.15, 0.92);
-drawRowanCluster(ctx, 1844, 1026, -2.55, 1.05);
+// bottom-right rich hop vine corner
+// frames southeast sea clear of greece
+ctx.strokeStyle = '#1b4d32';
+ctx.lineWidth = 2.6;
+ctx.beginPath();
+ctx.moveTo(1892, 848);
+ctx.quadraticCurveTo(1884, 988, 1848, 1028);
+ctx.quadraticCurveTo(1802, 1054, 1682, 1052);
+ctx.stroke();
 
-drawHopCone(ctx, 42, 40, 0.95, 0.72);
-drawRowanCluster(ctx, 72, 36, 0.15, 0.78);
+drawHopTendril(ctx, 1682, 1052, 2.9, 1.0);
+drawHopTendril(ctx, 1892, 848, -1.75, 0.95);
+
+drawHopLeaf(ctx, 1874, 886, -0.55, 0.95);
+drawHopLeaf(ctx, 1870, 956, -0.95, 1.08);
+drawHopLeaf(ctx, 1838, 1026, -2.2, 1.15);
+drawHopLeaf(ctx, 1776, 1044, -2.75, 1.0);
+drawHopLeaf(ctx, 1720, 1048, -3.0, 0.85);
+
+drawHopCone(ctx, 1872, 916, 0.25, 0.96);
+drawHopCone(ctx, 1846, 958, 0.65, 1.08);
+drawHopCone(ctx, 1876, 992, 0.15, 1.02);
+drawHopCone(ctx, 1824, 1004, 1.05, 1.12);
+drawHopCone(ctx, 1852, 1034, 0.65, 0.98);
+drawHopCone(ctx, 1784, 1028, 1.35, 1.04);
+drawHopCone(ctx, 1738, 1042, 1.55, 0.9);
+
+// top-left hop sprig above riddle card
+// stays neatly above y=64 card edge
+ctx.strokeStyle = '#1b4d32';
+ctx.lineWidth = 2.2;
+ctx.beginPath();
+ctx.moveTo(26, 54);
+ctx.quadraticCurveTo(46, 30, 198, 32);
+ctx.stroke();
+
+drawHopTendril(ctx, 198, 32, -0.15, 0.85);
+drawHopLeaf(ctx, 56, 36, 0.75, 0.78);
+drawHopLeaf(ctx, 104, 34, 1.25, 0.76);
+drawHopLeaf(ctx, 154, 34, 1.55, 0.72);
+
+drawHopCone(ctx, 42, 42, 0.75, 0.74);
+drawHopCone(ctx, 78, 38, 1.15, 0.78);
+drawHopCone(ctx, 118, 37, 1.35, 0.75);
+drawHopCone(ctx, 158, 36, 1.48, 0.68);
+
+// right-edge hanging hop bine under logo
+// keeps 200px clear of finland and ukraine
+ctx.strokeStyle = '#1b4d32';
+ctx.lineWidth = 2.2;
+ctx.beginPath();
+ctx.moveTo(1884, 146);
+ctx.quadraticCurveTo(1866, 224, 1882, 336);
+ctx.stroke();
+
+drawHopTendril(ctx, 1882, 336, 1.55, 0.85);
+drawHopLeaf(ctx, 1874, 178, -0.85, 0.8);
+drawHopLeaf(ctx, 1872, 246, -1.15, 0.84);
+drawHopLeaf(ctx, 1878, 306, -0.75, 0.74);
+
+drawHopCone(ctx, 1874, 168, 0.35, 0.82);
+drawHopCone(ctx, 1860, 212, 0.58, 0.88);
+drawHopCone(ctx, 1876, 256, 0.25, 0.86);
+drawHopCone(ctx, 1866, 300, 0.45, 0.76);
 
 ctx.restore();
 }
 
-// draw compact hop & berry crest on score
-// sits neatly on scoreboard top border
+// draw hop swag crest on scoreboard top
+// uses three hop cones and flared leaves
 function drawRowanScoreCrest(ctx, x, y, w) {
 var cx = x + w / 2;
 ctx.save();
-drawHopCone(ctx, cx - 22, y - 2, -1.25, 0.56);
-drawHopCone(ctx, cx + 22, y - 2, 1.25, 0.56);
-var dots = [
-{ dx: -6, dy: -2, r: 3.6, c: '#b91604' },
-{ dx: 0, dy: -5, r: 4.1, c: '#d81e05' },
-{ dx: 6, dy: -2, r: 3.6, c: '#f22c08' }
-];
-for (var i = 0; i < dots.length; i++) {
-ctx.fillStyle = dots[i].c;
+ctx.strokeStyle = '#1b4d32';
+ctx.lineWidth = 2;
 ctx.beginPath();
-ctx.arc(
-cx + dots[i].dx,
-y + dots[i].dy,
-dots[i].r,
-0,
-Math.PI * 2
-);
-ctx.fill();
-}
+ctx.moveTo(cx - 46, y - 2);
+ctx.quadraticCurveTo(cx, y - 8, cx + 46, y - 2);
+ctx.stroke();
+
+drawHopLeaf(ctx, cx - 26, y - 4, -0.95, 0.56);
+drawHopLeaf(ctx, cx + 26, y - 4, 0.95, 0.56);
+drawHopCone(ctx, cx - 20, y - 1, -1.2, 0.58);
+drawHopCone(ctx, cx + 20, y - 1, 1.2, 0.58);
+drawHopCone(ctx, cx, y - 2, 0, 0.64);
 ctx.restore();
 }
 
