@@ -1,5 +1,5 @@
 // procedural 1920x1080 canvas tv renderer
-// supports 3 themes and strict es5
+// supports 4 themes and strict es5
 window.TV_RENDERER = (function () {
 var W = 1920;
 var H = 1080;
@@ -39,8 +39,37 @@ alpha: 0.28 + Math.random() * 0.62
 }
 
 // return color tokens for active theme
-// maps standard, dark, and christmas
+// maps pub, standard, dark, and christmas
 function getThemePalette(theme) {
+if (theme === 'pub') {
+return {
+seaTop: '#f8f3e6',
+seaBot: '#ebe1c8',
+grid: 'rgba(7,46,27,0.075)',
+land: '#d5dec6',
+border: '#244935',
+paintedBorder: '#fdfaf1',
+panelBg: 'rgba(253,250,241,0.97)',
+panelBorder: '#072e1b',
+innerTrim: '#b58b42',
+panelText: '#072e1b',
+mutedText: '#496655',
+accent: '#c81e06',
+accentText: '#fdfaf1',
+part2Bg: 'rgba(216,30,5,0.08)',
+part2Border: '#d81e05',
+badgeBg: '#072e1b',
+badgeText: '#f4f7f5',
+ptsFullBg: '#14532d',
+ptsHalfBg: '#d81e05',
+revealColor: '#0f5c34',
+activeRowBg: 'rgba(7,46,27,0.10)',
+finishMapBg: 'rgba(7,46,27,0.045)',
+headingFont: 'Georgia, serif',
+floatStroke: 'rgba(7,46,27,0.94)',
+floatFill: '#fdfaf1'
+};
+}
 if (theme === 'standard') {
 return {
 seaTop: '#0e3c6b',
@@ -48,8 +77,10 @@ seaBot: '#1b5d9a',
 grid: 'rgba(255,255,255,0.10)',
 land: '#e2e8f0',
 border: '#475569',
+paintedBorder: '#ffffff',
 panelBg: 'rgba(255,255,255,0.95)',
 panelBorder: '#2563eb',
+innerTrim: null,
 panelText: '#0f172a',
 mutedText: '#475569',
 accent: '#d97706',
@@ -57,7 +88,15 @@ accentText: '#ffffff',
 part2Bg: 'rgba(245,158,11,0.16)',
 part2Border: '#d97706',
 badgeBg: '#1e40af',
-badgeText: '#ffffff'
+badgeText: '#ffffff',
+ptsFullBg: '#059669',
+ptsHalfBg: '#d97706',
+revealColor: '#059669',
+activeRowBg: 'rgba(59,130,246,0.22)',
+finishMapBg: 'rgba(2,6,23,0.34)',
+headingFont: 'sans-serif',
+floatStroke: 'rgba(2,6,23,0.9)',
+floatFill: '#ffffff'
 };
 }
 if (theme === 'christmas') {
@@ -67,8 +106,10 @@ seaBot: '#0c2f29',
 grid: 'rgba(167,243,208,0.08)',
 land: '#1c3b35',
 border: '#86efac',
+paintedBorder: '#ffffff',
 panelBg: 'rgba(12,35,30,0.94)',
 panelBorder: '#f59e0b',
+innerTrim: null,
 panelText: '#fef3c7',
 mutedText: '#a7f3d0',
 accent: '#dc2626',
@@ -76,7 +117,15 @@ accentText: '#ffffff',
 part2Bg: 'rgba(245,158,11,0.18)',
 part2Border: '#fbbf24',
 badgeBg: '#b91c1c',
-badgeText: '#fef3c7'
+badgeText: '#fef3c7',
+ptsFullBg: '#059669',
+ptsHalfBg: '#d97706',
+revealColor: '#10b981',
+activeRowBg: 'rgba(59,130,246,0.22)',
+finishMapBg: 'rgba(2,6,23,0.34)',
+headingFont: 'sans-serif',
+floatStroke: 'rgba(2,6,23,0.9)',
+floatFill: '#ffffff'
 };
 }
 return {
@@ -85,8 +134,10 @@ seaBot: '#111827',
 grid: 'rgba(148,163,184,0.10)',
 land: '#1e293b',
 border: '#94a3b8',
+paintedBorder: '#ffffff',
 panelBg: 'rgba(15,23,42,0.94)',
 panelBorder: '#38bdf8',
+innerTrim: null,
 panelText: '#f8fafc',
 mutedText: '#94a3b8',
 accent: '#f59e0b',
@@ -94,7 +145,15 @@ accentText: '#0f172a',
 part2Bg: 'rgba(251,191,36,0.15)',
 part2Border: '#fbbf24',
 badgeBg: '#0284c7',
-badgeText: '#ffffff'
+badgeText: '#ffffff',
+ptsFullBg: '#059669',
+ptsHalfBg: '#d97706',
+revealColor: '#10b981',
+activeRowBg: 'rgba(59,130,246,0.22)',
+finishMapBg: 'rgba(2,6,23,0.34)',
+headingFont: 'sans-serif',
+floatStroke: 'rgba(2,6,23,0.9)',
+floatFill: '#ffffff'
 };
 }
 
@@ -221,6 +280,40 @@ ctx.quadraticCurveTo(x, y, x + r, y);
 ctx.closePath();
 }
 
+// draw card shell with optional trim
+// adds brass inset rule on pub theme
+function drawCardBox(
+ctx,
+x,
+y,
+w,
+h,
+r,
+pal,
+strokeCol,
+lw
+) {
+drawRoundRect(ctx, x, y, w, h, r);
+ctx.fillStyle = pal.panelBg;
+ctx.fill();
+ctx.strokeStyle = strokeCol;
+ctx.lineWidth = lw;
+ctx.stroke();
+if (pal.innerTrim) {
+drawRoundRect(
+ctx,
+x + 7,
+y + 7,
+w - 14,
+h - 14,
+Math.max(6, r - 5)
+);
+ctx.strokeStyle = pal.innerTrim;
+ctx.lineWidth = 1.25;
+ctx.stroke();
+}
+}
+
 // find country geometry record by code
 // scans loaded EUROPE_MAP array
 function findMapCountry(code) {
@@ -234,8 +327,333 @@ return list[i];
 return null;
 }
 
-// draw sea background and subtle snow
-// omits top garland to keep map clean
+// draw single layered botanical hop cone
+// uses stem cap and layered green bracts
+function drawHopCone(ctx, x, y, ang, sc) {
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.scale(sc, sc);
+
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(0, -18);
+ctx.lineTo(0, -11);
+ctx.stroke();
+
+var tiers = [
+{ y: -12, rx: 10, ry: 7, c: '#355f3b' },
+{ y: -5, rx: 12.5, ry: 8, c: '#4d7c46' },
+{ y: 3, rx: 11.5, ry: 8, c: '#6f9650' },
+{ y: 11, rx: 8.5, ry: 7, c: '#96ae5e' },
+{ y: 17, rx: 5, ry: 5, c: '#b3be71' }
+];
+for (var i = 0; i < tiers.length; i++) {
+var tr = tiers[i];
+ctx.fillStyle = tr.c;
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 1.1;
+
+ctx.beginPath();
+ctx.save();
+ctx.translate(-tr.rx * 0.42, tr.y);
+ctx.scale(1, tr.ry / tr.rx);
+ctx.arc(0, 0, tr.rx * 0.72, 0, Math.PI * 2);
+ctx.restore();
+ctx.fill();
+ctx.stroke();
+
+ctx.beginPath();
+ctx.save();
+ctx.translate(tr.rx * 0.42, tr.y);
+ctx.scale(1, tr.ry / tr.rx);
+ctx.arc(0, 0, tr.rx * 0.72, 0, Math.PI * 2);
+ctx.restore();
+ctx.fill();
+ctx.stroke();
+
+ctx.beginPath();
+ctx.save();
+ctx.translate(0, tr.y + 2);
+ctx.scale(1, (tr.ry * 0.9) / (tr.rx * 0.72));
+ctx.arc(0, 0, tr.rx * 0.65, 0, Math.PI * 2);
+ctx.restore();
+ctx.fill();
+ctx.stroke();
+}
+ctx.restore();
+}
+
+// draw three-lobed botanical hop leaf
+// adds crisp dark outline and light veins
+function drawHopLeaf(ctx, x, y, ang, sc) {
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.scale(sc, sc);
+
+ctx.fillStyle = '#245a38';
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 1.4;
+ctx.beginPath();
+ctx.moveTo(0, 12);
+ctx.quadraticCurveTo(-18, 12, -24, -4);
+ctx.quadraticCurveTo(-14, -6, -11, -12);
+ctx.quadraticCurveTo(-8, -22, 0, -28);
+ctx.quadraticCurveTo(8, -22, 11, -12);
+ctx.quadraticCurveTo(14, -6, 24, -4);
+ctx.quadraticCurveTo(18, 12, 0, 12);
+ctx.closePath();
+ctx.fill();
+ctx.stroke();
+
+ctx.strokeStyle = '#5f8d4e';
+ctx.lineWidth = 1.1;
+ctx.beginPath();
+ctx.moveTo(0, 10);
+ctx.lineTo(0, -22);
+ctx.moveTo(0, 2);
+ctx.lineTo(-16, -3);
+ctx.moveTo(0, 2);
+ctx.lineTo(16, -3);
+ctx.stroke();
+ctx.restore();
+}
+
+// draw delicate curling hop bine tendril
+// softens vine tips with botanical spiral
+function drawHopTendril(
+ctx,
+x,
+y,
+ang,
+sc
+) {
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.scale(sc, sc);
+ctx.strokeStyle = '#2c6a3f';
+ctx.lineWidth = 1.6;
+ctx.beginPath();
+ctx.moveTo(0, 0);
+ctx.quadraticCurveTo(12, -10, 20, 0);
+ctx.quadraticCurveTo(26, 8, 18, 12);
+ctx.quadraticCurveTo(12, 14, 14, 7);
+ctx.stroke();
+ctx.restore();
+}
+
+// draw subtle antique atlas compass rose
+// sits in open southeast sea corner
+function drawCompassRose(ctx, cx, cy, rad) {
+ctx.save();
+ctx.translate(cx, cy);
+ctx.globalAlpha = 0.24;
+
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 1.6;
+ctx.beginPath();
+ctx.arc(0, 0, rad, 0, Math.PI * 2);
+ctx.stroke();
+
+ctx.strokeStyle = '#b58b42';
+ctx.lineWidth = 1.2;
+ctx.beginPath();
+ctx.arc(0, 0, rad - 7, 0, Math.PI * 2);
+ctx.stroke();
+
+var angles = [0, 90, 180, 270];
+for (var i = 0; i < angles.length; i++) {
+var a = (angles[i] * Math.PI) / 180;
+ctx.save();
+ctx.rotate(a);
+ctx.fillStyle = '#072e1b';
+ctx.beginPath();
+ctx.moveTo(0, -rad + 6);
+ctx.lineTo(9, 0);
+ctx.lineTo(0, 0);
+ctx.closePath();
+ctx.fill();
+
+ctx.fillStyle = '#b58b42';
+ctx.beginPath();
+ctx.moveTo(0, -rad + 6);
+ctx.lineTo(-9, 0);
+ctx.lineTo(0, 0);
+ctx.closePath();
+ctx.fill();
+ctx.restore();
+}
+
+var diag = [45, 135, 225, 315];
+for (var d = 0; d < diag.length; d++) {
+var da = (diag[d] * Math.PI) / 180;
+ctx.save();
+ctx.rotate(da);
+ctx.fillStyle = '#496655';
+ctx.beginPath();
+ctx.moveTo(0, -(rad * 0.62));
+ctx.lineTo(5, 0);
+ctx.lineTo(-5, 0);
+ctx.closePath();
+ctx.fill();
+ctx.restore();
+}
+
+ctx.fillStyle = '#072e1b';
+ctx.font = 'bold 14px Georgia, serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('N', 0, -rad - 11);
+ctx.fillText('S', 0, rad + 12);
+ctx.fillText('E', rad + 11, 0);
+ctx.fillText('W', -rad - 12, 0);
+ctx.restore();
+}
+
+// draw heritage frame and lush hop vines
+// keeps map and text totally unobstructed
+function drawPubDecor(ctx) {
+ctx.save();
+
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 2.5;
+ctx.strokeRect(12, 12, W - 24, H - 24);
+
+ctx.strokeStyle = '#b58b42';
+ctx.lineWidth = 1.25;
+ctx.strokeRect(19, 19, W - 38, H - 38);
+
+var corners = [
+[19, 19],
+[W - 19, 19],
+[19, H - 19],
+[W - 19, H - 19]
+];
+for (var c = 0; c < corners.length; c++) {
+ctx.fillStyle = '#072e1b';
+ctx.beginPath();
+ctx.arc(
+corners[c][0],
+corners[c][1],
+4.5,
+0,
+Math.PI * 2
+);
+ctx.fill();
+ctx.fillStyle = '#b58b42';
+ctx.beginPath();
+ctx.arc(
+corners[c][0],
+corners[c][1],
+2,
+0,
+Math.PI * 2
+);
+ctx.fill();
+}
+
+drawCompassRose(ctx, 1716, 886, 48);
+
+// bottom-right rich hop vine corner
+// frames southeast sea clear of greece
+ctx.strokeStyle = '#1b4d32';
+ctx.lineWidth = 2.6;
+ctx.beginPath();
+ctx.moveTo(1892, 848);
+ctx.quadraticCurveTo(1884, 988, 1848, 1028);
+ctx.quadraticCurveTo(1802, 1054, 1682, 1052);
+ctx.stroke();
+
+drawHopTendril(ctx, 1682, 1052, 2.9, 1.0);
+drawHopTendril(ctx, 1892, 848, -1.75, 0.95);
+
+drawHopLeaf(ctx, 1874, 886, -0.55, 0.95);
+drawHopLeaf(ctx, 1870, 956, -0.95, 1.08);
+drawHopLeaf(ctx, 1838, 1026, -2.2, 1.15);
+drawHopLeaf(ctx, 1776, 1044, -2.75, 1.0);
+drawHopLeaf(ctx, 1720, 1048, -3.0, 0.85);
+
+drawHopCone(ctx, 1872, 916, 0.25, 0.96);
+drawHopCone(ctx, 1846, 958, 0.65, 1.08);
+drawHopCone(ctx, 1876, 992, 0.15, 1.02);
+drawHopCone(ctx, 1824, 1004, 1.05, 1.12);
+drawHopCone(ctx, 1852, 1034, 0.65, 0.98);
+drawHopCone(ctx, 1784, 1028, 1.35, 1.04);
+drawHopCone(ctx, 1738, 1042, 1.55, 0.9);
+
+// top-left hop sprig above riddle card
+// stays neatly above y=64 card edge
+ctx.strokeStyle = '#1b4d32';
+ctx.lineWidth = 2.2;
+ctx.beginPath();
+ctx.moveTo(26, 54);
+ctx.quadraticCurveTo(46, 30, 198, 32);
+ctx.stroke();
+
+drawHopTendril(ctx, 198, 32, -0.15, 0.85);
+drawHopLeaf(ctx, 56, 36, 0.75, 0.78);
+drawHopLeaf(ctx, 104, 34, 1.25, 0.76);
+drawHopLeaf(ctx, 154, 34, 1.55, 0.72);
+
+drawHopCone(ctx, 42, 42, 0.75, 0.74);
+drawHopCone(ctx, 78, 38, 1.15, 0.78);
+drawHopCone(ctx, 118, 37, 1.35, 0.75);
+drawHopCone(ctx, 158, 36, 1.48, 0.68);
+
+// top-right sweeping hop corner bine
+// fills open sea east of finland cleanly
+ctx.strokeStyle = '#1b4d32';
+ctx.lineWidth = 2.4;
+ctx.beginPath();
+ctx.moveTo(1716, 28);
+ctx.quadraticCurveTo(1856, 28, 1878, 72);
+ctx.quadraticCurveTo(1892, 168, 1882, 314);
+ctx.stroke();
+
+drawHopTendril(ctx, 1716, 28, 3.05, 0.9);
+drawHopTendril(ctx, 1882, 314, 1.55, 0.85);
+
+drawHopLeaf(ctx, 1768, 36, -1.35, 0.86);
+drawHopLeaf(ctx, 1848, 52, -0.85, 0.96);
+drawHopLeaf(ctx, 1874, 138, -0.75, 0.88);
+drawHopLeaf(ctx, 1874, 232, -1.05, 0.84);
+
+drawHopCone(ctx, 1746, 40, -1.35, 0.82);
+drawHopCone(ctx, 1796, 42, -1.05, 0.9);
+drawHopCone(ctx, 1848, 62, -0.45, 0.98);
+drawHopCone(ctx, 1870, 104, 0.25, 0.92);
+drawHopCone(ctx, 1864, 166, 0.55, 0.88);
+drawHopCone(ctx, 1876, 218, 0.25, 0.86);
+drawHopCone(ctx, 1866, 272, 0.48, 0.78);
+
+ctx.restore();
+}
+
+// draw hop swag crest on scoreboard top
+// uses three hop cones and flared leaves
+function drawPubScoreCrest(ctx, x, y, w) {
+var cx = x + w / 2;
+ctx.save();
+ctx.strokeStyle = '#1b4d32';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(cx - 46, y - 2);
+ctx.quadraticCurveTo(cx, y - 8, cx + 46, y - 2);
+ctx.stroke();
+
+drawHopLeaf(ctx, cx - 26, y - 4, -0.95, 0.56);
+drawHopLeaf(ctx, cx + 26, y - 4, 0.95, 0.56);
+drawHopCone(ctx, cx - 20, y - 1, -1.2, 0.58);
+drawHopCone(ctx, cx + 20, y - 1, 1.2, 0.58);
+drawHopCone(ctx, cx, y - 2, 0, 0.64);
+ctx.restore();
+}
+
+// draw sea background and theme decor
+// picks snow/garlands or pub hop vines
 function drawBackdrop(ctx, pal, theme, now) {
 var grad = ctx.createLinearGradient(
 0,
@@ -265,6 +683,8 @@ ctx.stroke();
 
 if (theme === 'christmas') {
 drawSideChristmasDecor(ctx, now);
+} else if (theme === 'pub') {
+drawPubDecor(ctx);
 }
 }
 
@@ -412,6 +832,7 @@ h: 1010
 function drawFloatingRevealLabel(
 ctx,
 mapBox,
+pal,
 lang,
 now
 ) {
@@ -450,11 +871,11 @@ ctx.translate(lx, ly);
 ctx.scale(scale, scale);
 ctx.textAlign = 'center';
 ctx.textBaseline = 'middle';
-ctx.font = 'bold 28px sans-serif';
+ctx.font = 'bold 28px ' + pal.headingFont;
 ctx.lineWidth = 6;
-ctx.strokeStyle = 'rgba(2,6,23,0.9)';
+ctx.strokeStyle = pal.floatStroke;
 ctx.strokeText(label, 0, 0);
-ctx.fillStyle = '#ffffff';
+ctx.fillStyle = pal.floatFill;
 ctx.fillText(label, 0, 0);
 ctx.restore();
 }
@@ -485,7 +906,7 @@ mapBox.w + 32,
 mapBox.h + 32,
 22
 );
-ctx.fillStyle = 'rgba(2,6,23,0.34)';
+ctx.fillStyle = pal.finishMapBg;
 ctx.fill();
 ctx.strokeStyle = pal.panelBorder;
 ctx.lineWidth = 2.5;
@@ -502,7 +923,7 @@ traceCountry(ctx, c, mapBox);
 ctx.fillStyle = pal.land;
 ctx.fill();
 ctx.strokeStyle = pal.border;
-ctx.lineWidth = 1.6;
+ctx.lineWidth = 1.65;
 ctx.stroke();
 }
 
@@ -522,7 +943,7 @@ traceCountry(ctx, pc, mapBox);
 ctx.fillStyle = pal.land;
 ctx.fill();
 ctx.strokeStyle = pal.border;
-ctx.lineWidth = 1.6;
+ctx.lineWidth = 1.65;
 ctx.stroke();
 
 var t =
@@ -545,7 +966,7 @@ ctx.fillStyle = pInfo.color;
 ctx.fill();
 }
 traceCountry(ctx, pc, mapBox);
-ctx.strokeStyle = '#ffffff';
+ctx.strokeStyle = pal.paintedBorder;
 ctx.lineWidth = 2.2;
 ctx.stroke();
 }
@@ -566,10 +987,10 @@ if (!gc) continue;
 var gx = projX(gc.cx, mapBox);
 var gy = projY(gc.cy, mapBox);
 ctx.save();
-ctx.fillStyle = 'rgba(239,68,68,0.42)';
+ctx.fillStyle = 'rgba(216,30,5,0.40)';
 traceCountry(ctx, gc, mapBox);
 ctx.fill();
-ctx.strokeStyle = '#fca5a5';
+ctx.strokeStyle = '#b91604';
 ctx.lineWidth = 2;
 ctx.stroke();
 ctx.fillStyle = '#ffffff';
@@ -595,10 +1016,10 @@ var ht =
 1000;
 var ringCol =
 animState.hintTier === 'neighbor'
-? '#22c55e'
+? '#15803d'
 : animState.hintTier === 'close'
-? '#fbbf24'
-: '#38bdf8';
+? '#d97706'
+: '#1d4ed8';
 ctx.save();
 ctx.strokeStyle = ringCol;
 ctx.lineWidth = 4.5;
@@ -616,7 +1037,13 @@ ctx.restore();
 }
 }
 
-drawFloatingRevealLabel(ctx, mapBox, lang, now);
+drawFloatingRevealLabel(
+ctx,
+mapBox,
+pal,
+lang,
+now
+);
 }
 
 // compute scoreboard height below card
@@ -670,12 +1097,17 @@ var paintedCount = Object.keys(
 var totalCountries = 37;
 
 ctx.save();
-drawRoundRect(ctx, x, y, boxW, boxH, 16);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle = pal.panelBorder;
-ctx.lineWidth = 2.5;
-ctx.stroke();
+drawCardBox(
+ctx,
+x,
+y,
+boxW,
+boxH,
+16,
+pal,
+pal.panelBorder,
+2.5
+);
 
 if (room.gameMode === 'coop') {
 ctx.fillStyle = pal.mutedText;
@@ -683,7 +1115,7 @@ ctx.font = 'bold 16px sans-serif';
 ctx.fillText(t.tvCoopTeam, x + 22, y + 34);
 
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 48px sans-serif';
+ctx.font = 'bold 48px ' + pal.headingFont;
 ctx.fillText(
 String(room.coopScore || 0),
 x + 22,
@@ -699,7 +1131,7 @@ x + boxW - 22,
 y + 42
 );
 ctx.fillStyle = pal.accent;
-ctx.font = 'bold 34px sans-serif';
+ctx.font = 'bold 34px ' + pal.headingFont;
 ctx.fillText(
 paintedCount + ' / ' + totalCountries,
 x + boxW - 22,
@@ -709,6 +1141,8 @@ ctx.textAlign = 'left';
 ctx.restore();
 if (theme === 'christmas') {
 drawScoreboardGarland(ctx, x, y, boxW, now);
+} else if (theme === 'pub') {
+drawPubScoreCrest(ctx, x, y, boxW);
 }
 return;
 }
@@ -726,7 +1160,7 @@ var rowH = 38;
 var headerH = 54;
 
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 19px sans-serif';
+ctx.font = 'bold 19px ' + pal.headingFont;
 var rTitle = room.name || '';
 if (rTitle.length > 22) {
 rTitle = rTitle.slice(0, 21) + '…';
@@ -766,7 +1200,7 @@ cellW,
 34,
 8
 );
-ctx.fillStyle = 'rgba(59,130,246,0.22)';
+ctx.fillStyle = pal.activeRowBg;
 ctx.fill();
 }
 ctx.fillStyle = tm.color;
@@ -797,6 +1231,8 @@ ctx.restore();
 
 if (theme === 'christmas') {
 drawScoreboardGarland(ctx, x, y, boxW, now);
+} else if (theme === 'pub') {
+drawPubScoreCrest(ctx, x, y, boxW);
 }
 }
 
@@ -830,15 +1266,20 @@ if (phase === 'exhausted') {
 ctx.save();
 var exY = Math.max(topY, botY - 400);
 var exH = botY - exY;
-drawRoundRect(ctx, cardX, exY, cardW, exH, 22);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle = '#f59e0b';
-ctx.lineWidth = 3.5;
-ctx.stroke();
+drawCardBox(
+ctx,
+cardX,
+exY,
+cardW,
+exH,
+22,
+pal,
+pal.accent,
+3.5
+);
 
-ctx.fillStyle = '#fbbf24';
-ctx.font = 'bold 34px sans-serif';
+ctx.fillStyle = pal.accent;
+ctx.font = 'bold 34px ' + pal.headingFont;
 var exT = wrapText(
 ctx,
 t.tvExhaustedTitle,
@@ -881,15 +1322,20 @@ if (phase === 'ready' || !cq) {
 ctx.save();
 var rY = Math.max(topY, botY - 380);
 var rH = botY - rY;
-drawRoundRect(ctx, cardX, rY, cardW, rH, 22);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle = pal.panelBorder;
-ctx.lineWidth = 3;
-ctx.stroke();
+drawCardBox(
+ctx,
+cardX,
+rY,
+cardW,
+rH,
+22,
+pal,
+pal.panelBorder,
+3
+);
 
 ctx.fillStyle = pal.accent;
-ctx.font = 'bold 24px sans-serif';
+ctx.font = 'bold 24px ' + pal.headingFont;
 ctx.fillText(
 room.name || t.gameTitle,
 cardX + 28,
@@ -897,7 +1343,7 @@ rY + 56
 );
 
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 34px sans-serif';
+ctx.font = 'bold 34px ' + pal.headingFont;
 var readyMsg =
 lang === 'en'
 ? 'Ready! Host is picking the next European riddle...'
@@ -915,22 +1361,19 @@ return;
 }
 
 ctx.save();
-drawRoundRect(
+drawCardBox(
 ctx,
 cardX,
 topY,
 cardW,
 cardH,
-22
-);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle =
+22,
+pal,
 phase === 'revealed'
-? '#10b981'
-: pal.panelBorder;
-ctx.lineWidth = 3.5;
-ctx.stroke();
+? pal.revealColor
+: pal.panelBorder,
+3.5
+);
 
 ctx.fillStyle = pal.badgeBg;
 drawRoundRect(
@@ -955,8 +1398,8 @@ if (cq.isHalfValue) {
 ptsText += ' (½)';
 }
 ctx.fillStyle = cq.isHalfValue
-? '#d97706'
-: '#059669';
+? pal.ptsHalfBg
+: pal.ptsFullBg;
 drawRoundRect(
 ctx,
 cardX + 210,
@@ -1011,8 +1454,8 @@ var cap = cObj
 ? cObj.capEn
 : cObj.capUk
 : '';
-ctx.fillStyle = '#10b981';
-ctx.font = 'bold 34px sans-serif';
+ctx.fillStyle = pal.revealColor;
+ctx.font = 'bold 34px ' + pal.headingFont;
 var cLines = wrapText(
 ctx,
 cName + (cap ? ' — ' + cap : ''),
@@ -1047,7 +1490,7 @@ return;
 if (!room.showQuestionOnTv) {
 ctx.textAlign = 'center';
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 36px sans-serif';
+ctx.font = 'bold 36px ' + pal.headingFont;
 var listenLines = wrapText(
 ctx,
 t.tvListenHost,
@@ -1190,16 +1633,21 @@ var paintedCount = Object.keys(
 ).length;
 
 ctx.save();
-drawRoundRect(ctx, px, py, pw, ph, 24);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle = pal.panelBorder;
-ctx.lineWidth = 4;
-ctx.stroke();
+drawCardBox(
+ctx,
+px,
+py,
+pw,
+ph,
+24,
+pal,
+pal.panelBorder,
+4
+);
 
 ctx.textAlign = 'center';
 ctx.fillStyle = pal.accent;
-ctx.font = 'bold 40px sans-serif';
+ctx.font = 'bold 40px ' + pal.headingFont;
 ctx.fillText(t.tvFinishTitle, px + pw / 2, py + 72);
 
 ctx.fillStyle = pal.mutedText;
@@ -1233,8 +1681,8 @@ pw - 56,
 );
 ctx.fillStyle =
 i === 0
-? 'rgba(245,158,11,0.22)'
-: 'rgba(148,163,184,0.12)';
+? 'rgba(181,139,66,0.22)'
+: pal.activeRowBg;
 ctx.fill();
 ctx.strokeStyle = tm.color;
 ctx.lineWidth = 3;
@@ -1264,7 +1712,7 @@ ry + 49
 }
 } else {
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 68px sans-serif';
+ctx.font = 'bold 68px ' + pal.headingFont;
 ctx.fillText(
 room.coopScore + ' PTS',
 px + pw / 2,
@@ -1293,7 +1741,7 @@ pw - 56,
 66,
 12
 );
-ctx.fillStyle = 'rgba(148,163,184,0.14)';
+ctx.fillStyle = pal.activeRowBg;
 ctx.fill();
 ctx.textAlign = 'left';
 ctx.fillStyle = pal.panelText;

@@ -12,7 +12,8 @@ MAX_EVENTS: 50,
 THEMES: [
 'standard',
 'dark',
-'christmas'
+'christmas',
+'pub'
 ],
 TEAM_COLORS: [
 '#2563eb',

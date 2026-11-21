@@ -170,6 +170,8 @@ $('new-theme-dark').innerHTML =
 t.themeDark;
 $('new-theme-xmas').innerHTML =
 t.themeChristmas;
+$('new-theme-pub').innerHTML =
+t.themePub;
 $('lbl-saved-rooms').innerHTML =
 t.savedRooms;
 $('lbl-backup-title').innerHTML =
@@ -193,6 +195,8 @@ $('live-theme-dark').innerHTML =
 t.themeDark;
 $('live-theme-xmas').innerHTML =
 t.themeChristmas;
+$('live-theme-pub').innerHTML =
+t.themePub;
 $('lbl-sb-pos').innerHTML = t.sbPosTitle;
 $('sb-bottom').innerHTML = t.sbBottom;
 $('sb-hidden').innerHTML = t.sbHidden;
@@ -855,6 +859,10 @@ $('live-theme-xmas').className =
 room.theme === 'christmas'
 ? 'pill-btn selected'
 : 'pill-btn';
+$('live-theme-pub').className =
+room.theme === 'pub'
+? 'pill-btn selected'
+: 'pill-btn';
 
 var tList = $('settings-teams-list');
 tList.innerHTML = '';
@@ -987,6 +995,7 @@ $('new-theme-std').className =
 'pill-btn selected';
 $('new-theme-dark').className = 'pill-btn';
 $('new-theme-xmas').className = 'pill-btn';
+$('new-theme-pub').className = 'pill-btn';
 };
 $('new-theme-dark').onclick = function () {
 newRoomTheme = 'dark';
@@ -994,12 +1003,22 @@ $('new-theme-std').className = 'pill-btn';
 $('new-theme-dark').className =
 'pill-btn selected';
 $('new-theme-xmas').className = 'pill-btn';
+$('new-theme-pub').className = 'pill-btn';
 };
 $('new-theme-xmas').onclick = function () {
 newRoomTheme = 'christmas';
 $('new-theme-std').className = 'pill-btn';
 $('new-theme-dark').className = 'pill-btn';
 $('new-theme-xmas').className =
+'pill-btn selected';
+$('new-theme-pub').className = 'pill-btn';
+};
+$('new-theme-pub').onclick = function () {
+newRoomTheme = 'pub';
+$('new-theme-std').className = 'pill-btn';
+$('new-theme-dark').className = 'pill-btn';
+$('new-theme-xmas').className = 'pill-btn';
+$('new-theme-pub').className =
 'pill-btn selected';
 };
 
@@ -1045,6 +1064,9 @@ $('live-theme-xmas').onclick = function () {
 apiPost('/api/settings', {
 theme: 'christmas'
 });
+};
+$('live-theme-pub').onclick = function () {
+apiPost('/api/settings', { theme: 'pub' });
 };
 
 $('sb-bottom').onclick = function () {
