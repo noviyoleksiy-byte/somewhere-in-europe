@@ -22,9 +22,11 @@ return;
 var img = new Image();
 img.onload = function () {
 rowanLogo.ready = true;
+if (window.TV_KICK_RENDER) {
+window.TV_KICK_RENDER();
+}
 };
-img.src =
-'assets/aistudio/rowan-events-option-1_004e6aed.svg';
+img.src = 'assets/rowan-logo.svg';
 rowanLogo.img = img;
 })();
 
@@ -509,6 +511,8 @@ ctx.globalAlpha = 0.82;
 var ink = '#163c27';
 var gold = 'rgba(181,139,66,0.78)';
 
+// primary intertwined corner scrollwork
+// hugs both rails with double vine curve
 ctx.strokeStyle = ink;
 ctx.lineWidth = 1.6;
 ctx.beginPath();
@@ -582,6 +586,8 @@ drawVolute(ctx, 174, 23, 0.25, 0.68, gold);
 drawVolute(ctx, 13, 204, 1.4, 0.88, ink);
 drawVolute(ctx, 23, 158, 1.85, 0.68, gold);
 
+// diagonal corner finial & hop motif
+// anchors ornament at frame intersection
 drawOrnamentLeaf(ctx, 64, 24, 1.25, 0.84);
 drawOrnamentLeaf(ctx, 24, 62, -0.32, 0.84);
 drawOrnamentLeaf(ctx, 142, 24, 1.48, 0.72);
@@ -1321,7 +1327,8 @@ room,
 pal,
 t,
 theme,
-now
+now,
+totalCountries
 ) {
 var phase =
 room && room.round ? room.round.phase : 'ready';
@@ -1341,7 +1348,7 @@ var y = 1044 - boxH;
 var paintedCount = Object.keys(
 (room.round && room.round.painted) || {}
 ).length;
-var totalCountries = 37;
+var maxCount = totalCountries || 37;
 
 ctx.save();
 drawCardBox(
@@ -1380,7 +1387,7 @@ y + 42
 ctx.fillStyle = pal.accent;
 ctx.font = 'bold 34px ' + pal.headingFont;
 ctx.fillText(
-paintedCount + ' / ' + totalCountries,
+paintedCount + ' / ' + maxCount,
 x + boxW - 22,
 y + 88
 );
@@ -1422,7 +1429,7 @@ t.tvPainted +
 ': ' +
 paintedCount +
 '/' +
-totalCountries,
+maxCount,
 x + boxW - 20,
 y + 33
 );
@@ -1439,7 +1446,14 @@ var cx = x + 14 + colIdx * (cellW + 8);
 var ry = y + headerH + rowIdx * rowH;
 
 if (tm.id === activeId) {
-drawRoundRect(ctx, cx, ry, cellW, 34, 8);
+drawRoundRect(
+ctx,
+cx,
+ry,
+cellW,
+34,
+8
+);
 ctx.fillStyle = pal.activeRowBg;
 ctx.fill();
 }
@@ -1483,7 +1497,8 @@ ctx,
 room,
 pal,
 t,
-now
+now,
+totalCountries
 ) {
 var round = room.round || {};
 var phase = round.phase || 'ready';
@@ -1550,7 +1565,11 @@ round.painted || {}
 ctx.fillStyle = pal.mutedText;
 ctx.font = 'bold 24px sans-serif';
 ctx.fillText(
-t.tvPainted + ': ' + pcCount + ' / 37',
+t.tvPainted +
+': ' +
+pcCount +
+' / ' +
+(totalCountries || 37),
 cardX + 28,
 exY + exH - 42
 );
@@ -1863,7 +1882,13 @@ ctx.restore();
 
 // draw side podium keeping painted map
 // shows final scores left of full map
-function drawFinishPanel(ctx, room, pal, t) {
+function drawFinishPanel(
+ctx,
+room,
+pal,
+t,
+totalCountries
+) {
 var px = 36;
 var py = 54;
 var pw = 562;
@@ -1893,7 +1918,11 @@ ctx.fillText(t.tvFinishTitle, px + pw / 2, py + 72);
 ctx.fillStyle = pal.mutedText;
 ctx.font = 'bold 22px sans-serif';
 ctx.fillText(
-t.tvPainted + ': ' + paintedCount + ' / 37',
+t.tvPainted +
+': ' +
+paintedCount +
+' / ' +
+(totalCountries || 37),
 px + pw / 2,
 py + 114
 );
@@ -2003,6 +2032,33 @@ ly + 42
 ctx.restore();
 }
 
+// check if tv canvas needs live frames
+// saves cpu on static themes when idle
+function needsAnimation(state) {
+if (!state || !state.room) {
+return false;
+}
+if (state.room.theme === 'christmas') {
+return true;
+}
+var now = Date.now();
+if (
+animState.revealCode &&
+now - animState.revealStartMs <
+animState.labelDuration + 120
+) {
+return true;
+}
+if (
+animState.hintCode &&
+now - animState.hintStartMs <
+animState.hintDuration + 120
+) {
+return true;
+}
+return false;
+}
+
 // render complete frame onto tv canvas
 // switches layout by current room phase
 function render(ctx, state) {
@@ -2015,25 +2071,27 @@ var pal = getThemePalette(theme);
 var lang = room.lang === 'uk' ? 'uk' : 'en';
 var t = window.APP_I18N[lang];
 var now = Date.now();
+var total = state.totalCountries || 37;
 
 drawBackdrop(ctx, pal, theme, now);
 drawMap(ctx, room, pal, now);
 if (theme === 'rowan') {
 drawRowanCornerLogo(ctx, room);
 }
-drawScoreboard(ctx, room, pal, t, theme, now);
-drawLeftPanel(ctx, room, pal, t, now);
+drawScoreboard(ctx, room, pal, t, theme, now, total);
+drawLeftPanel(ctx, room, pal, t, now, total);
 
 if (
 room.round &&
 room.round.phase === 'finished'
 ) {
-drawFinishPanel(ctx, room, pal, t);
+drawFinishPanel(ctx, room, pal, t, total);
 }
 }
 
 return {
 render: render,
-triggerEvent: triggerEvent
+triggerEvent: triggerEvent,
+needsAnimation: needsAnimation
 };
 })();

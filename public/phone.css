@@ -354,6 +354,7 @@ flex: 1 1 auto;
 min-width: 0;
 }
 input[type="text"],
+input[type="password"],
 input[type="number"] {
 width: 100%;
 background: #090d16;

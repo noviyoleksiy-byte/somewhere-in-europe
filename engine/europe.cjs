@@ -158,7 +158,7 @@ capUk: 'Лондон',
 capEn: 'London',
 cx: 109.9,
 cy: 68.4,
-neighbors: ['IE', 'FR']
+neighbors: ['IE', 'FR', 'IS']
 },
 GR: {
 code: 'GR',

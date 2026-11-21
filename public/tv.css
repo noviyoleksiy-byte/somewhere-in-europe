@@ -94,6 +94,8 @@ circle at center,
 );
 }
 .wait-box {
+width: 90%;
+max-width: 880px;
 width: min(90vw, 880px);
 padding: 40px 36px;
 border-radius: 24px;
@@ -111,6 +113,8 @@ box-shadow: 0 24px 60px rgba(7, 46, 27, 0.18);
 }
 .wait-brand-logo {
 display: none;
+width: 350px;
+max-width: 62%;
 width: min(62vw, 350px);
 height: auto;
 margin: 0 auto 22px auto;
@@ -119,6 +123,7 @@ margin: 0 auto 22px auto;
 display: block;
 }
 .wait-title {
+font-size: 52px;
 font-size: clamp(32px, 5vw, 68px);
 font-weight: 900;
 letter-spacing: 0.08em;
@@ -131,6 +136,7 @@ color: #072e1b;
 letter-spacing: 0.06em;
 }
 .wait-sub {
+font-size: 18px;
 font-size: clamp(13px, 1.5vw, 20px);
 font-weight: 800;
 letter-spacing: 0.18em;
@@ -141,6 +147,7 @@ margin-bottom: 18px;
 color: #b91604;
 }
 .wait-hint {
+font-size: 18px;
 font-size: clamp(14px, 1.5vw, 20px);
 color: #cbd5e1;
 margin-bottom: 28px;
@@ -152,9 +159,9 @@ color: #3d5a49;
 display: flex;
 flex-wrap: wrap;
 justify-content: center;
-gap: 12px;
 }
 .wait-btn {
+margin: 6px;
 padding: 14px 22px;
 font-size: 16px;
 font-weight: 800;

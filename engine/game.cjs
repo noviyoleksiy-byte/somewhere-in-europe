@@ -1,5 +1,5 @@
 // main game state and room engine
-// handles rounds, hints, and scoring
+// runs rounds, hints, and scoring
 var fs = require('fs');
 var path = require('path');
 var config = require('./config.cjs');
@@ -13,10 +13,15 @@ var DB_FILE = path.join(
 DATA_DIR,
 'state.json'
 );
+var VALID_TIERS = {
+neighbor: true,
+close: true,
+far: true
+};
 
 // make data dir if missing on disk
 // avoids write failure on boot
-function ensureDataDir() {
+function makeDataDir() {
 if (!fs.existsSync(DATA_DIR)) {
 fs.mkdirSync(DATA_DIR, {
 recursive: true
@@ -37,6 +42,14 @@ Date.now().toString(36) +
 '_' +
 r
 );
+}
+
+// trim and cap user text input length
+// stops oversized names breaking layout
+function cleanText(val, maxLen) {
+return String(val || '')
+.trim()
+.slice(0, maxLen || 60);
 }
 
 // build fresh round object for room
@@ -91,10 +104,11 @@ var t1Id = makeId('tm');
 var t2Id = makeId('tm');
 var round = makeEmptyRound(queue);
 round.activeTeamId = t1Id;
+var safeName = cleanText(name, 60);
 return {
 id: makeId('rm'),
 name:
-name ||
+safeName ||
 (useLang === 'en'
 ? 'Quiz Room #1'
 : 'Кімната #1'),
@@ -144,14 +158,93 @@ return {
 activeRoomId: firstRoom.id,
 rooms: [firstRoom],
 events: [],
-nextEventId: 1
+nextEventId: 1,
+hostPin: '',
+stateVersion: 1
 };
+}
+
+// check that imported room has core shape
+// rejects broken json before corrupting db
+function isValidRoomShape(r) {
+if (!r || typeof r !== 'object') {
+return false;
+}
+if (!r.id || typeof r.id !== 'string') {
+return false;
+}
+if (!r.name || typeof r.name !== 'string') {
+return false;
+}
+if (!Array.isArray(r.teams)) {
+return false;
+}
+if (
+!r.round ||
+typeof r.round !== 'object' ||
+!r.round.painted ||
+typeof r.round.painted !== 'object'
+) {
+return false;
+}
+return true;
+}
+
+// repair optional fields on loaded db
+// keeps old backups working cleanly
+function fixLoadedDb(parsed) {
+if (
+!parsed ||
+!Array.isArray(parsed.rooms) ||
+parsed.rooms.length === 0
+) {
+return null;
+}
+for (var i = 0; i < parsed.rooms.length; i++) {
+var r = parsed.rooms[i];
+if (!isValidRoomShape(r)) {
+return null;
+}
+r.name = cleanText(r.name, 60) || 'Room';
+if (r.lang !== 'uk') r.lang = 'en';
+if (config.THEMES.indexOf(r.theme) === -1) {
+r.theme = 'rowan';
+}
+if (r.gameMode !== 'coop') {
+r.gameMode = 'teams';
+}
+if (!Array.isArray(r.askedNumbers)) {
+r.askedNumbers = [];
+}
+if (!Array.isArray(r.leaderboard)) {
+r.leaderboard = [];
+}
+if (!Array.isArray(r.round.queue)) {
+r.round.queue = [];
+}
+if (typeof r.packFile !== 'string') {
+r.packFile = 'general_en.txt';
+}
+}
+if (!Array.isArray(parsed.events)) {
+parsed.events = [];
+}
+if (typeof parsed.nextEventId !== 'number') {
+parsed.nextEventId = 1;
+}
+if (typeof parsed.hostPin !== 'string') {
+parsed.hostPin = '';
+}
+if (typeof parsed.stateVersion !== 'number') {
+parsed.stateVersion = 1;
+}
+return parsed;
 }
 
 // load persisted database from json
 // falls back to fresh room on error
 function loadDb() {
-ensureDataDir();
+makeDataDir();
 try {
 if (fs.existsSync(DB_FILE)) {
 var raw = fs.readFileSync(
@@ -159,12 +252,9 @@ DB_FILE,
 'utf8'
 );
 var parsed = JSON.parse(raw);
-if (
-parsed &&
-Array.isArray(parsed.rooms) &&
-parsed.rooms.length > 0
-) {
-return parsed;
+var valid = fixLoadedDb(parsed);
+if (valid) {
+return valid;
 }
 }
 } catch (err) {
@@ -176,9 +266,10 @@ return makeDefaultDb();
 var db = loadDb();
 
 // write current database to disk
-// keeps rooms and scores across runs
+// bumps stateVersion on every save
 function saveDb() {
-ensureDataDir();
+db.stateVersion = (db.stateVersion || 0) + 1;
+makeDataDir();
 try {
 var tmp = DB_FILE + '.tmp';
 fs.writeFileSync(
@@ -190,6 +281,34 @@ fs.renameSync(tmp, DB_FILE);
 } catch (err) {
 console.log('save db err:', err);
 }
+}
+
+// check if optional host pin is active
+// off by default when string is empty
+function hasHostPin() {
+return Boolean(db.hostPin && db.hostPin.length > 0);
+}
+
+// check submitted pin against saved pin
+// returns true when pin is off or matches
+function checkHostPin(pin) {
+if (!hasHostPin()) {
+return true;
+}
+return String(pin || '').trim() === db.hostPin;
+}
+
+// set or clear optional host pin code
+// empty string turns pin protection off
+function setHostPin(pin) {
+var clean = cleanText(pin, 16);
+if (clean.length > 0 && clean.length < 4) {
+throw new Error(
+'PIN must be at least 4 characters'
+);
+}
+db.hostPin = clean;
+saveDb();
 }
 
 // push visual or audio event for tv
@@ -353,9 +472,30 @@ Math.random() * choices.length
 return choices[idx];
 }
 
-// return public state snapshot for tv
-// includes room info, packs, and events
-function getPublicState() {
+// hide secret answer fields from tv room
+// keeps players on wifi from peeking
+function stripSecretForTv(room) {
+if (!room) {
+return null;
+}
+var copy = JSON.parse(JSON.stringify(room));
+if (copy.round) {
+copy.round.undoSnapshot = null;
+var cq = copy.round.currentQuestion;
+if (cq && copy.round.phase === 'asking') {
+cq.country = null;
+cq.answerText = '';
+if (!cq.part2Revealed) {
+cq.part2 = '';
+}
+}
+}
+return copy;
+}
+
+// build state snapshot shared by tv/host
+// host gets secrets, tv gets clean view
+function buildState(includeSecrets) {
 var room = getActiveRoom();
 var packs = questions.listAvailablePacks();
 var totalCountries = Object.keys(
@@ -369,6 +509,8 @@ room.packFile
 packTotal = p.list.length;
 }
 return {
+stateVersion: db.stateVersion || 1,
+pinEnabled: hasHostPin(),
 activeRoomId: db.activeRoomId,
 roomsSummary: db.rooms.map(function (r) {
 var pCount = Object.keys(
@@ -386,7 +528,9 @@ paintedCount: pCount,
 teamsCount: r.teams.length
 };
 }),
-room: room,
+room: includeSecrets
+? room
+: stripSecretForTv(room),
 packs: packs,
 packTotal: packTotal,
 totalCountries: totalCountries,
@@ -395,9 +539,24 @@ nextEventId: db.nextEventId
 };
 }
 
+// return redacted state snapshot for tv
+// safe for open lan polling without pin
+function getTvState() {
+return buildState(false);
+}
+
+// return full state snapshot for host
+// includes secret answer and pin flag
+function getHostState() {
+return buildState(true);
+}
+
 // create and enter a new room
-// uses chosen name, lang, and theme
+// caps total saved rooms at 50
 function createRoom(name, lang, theme) {
+if (db.rooms.length >= 50) {
+throw new Error('Max 50 rooms');
+}
 var room = makeRoom(name, lang, theme);
 db.rooms.push(room);
 db.activeRoomId = room.id;
@@ -409,12 +568,21 @@ return room;
 }
 
 // switch active room by id
-// moves tv to that room state
+// checks room exists before mutating db
 function selectRoom(roomId) {
-db.activeRoomId = roomId;
-var room = requireRoom();
+var found = null;
+for (var i = 0; i < db.rooms.length; i++) {
+if (db.rooms[i].id === roomId) {
+found = db.rooms[i];
+break;
+}
+}
+if (!found) {
+throw new Error('Room not found');
+}
+db.activeRoomId = found.id;
 pushEvent('room_changed', {
-roomId: room.id
+roomId: found.id
 });
 saveDb();
 }
@@ -447,15 +615,24 @@ saveDb();
 }
 
 // rename currently active room
-// trims whitespace before saving
+// trims whitespace and caps length
 function renameRoom(name) {
 var room = requireRoom();
-var clean = String(name || '').trim();
+var clean = cleanText(name, 60);
 if (!clean) {
 throw new Error('Name required');
 }
 room.name = clean;
 saveDb();
+}
+
+// toggle tv sound on active room
+// lets tv splash button work cleanly
+function toggleTvSound() {
+var room = requireRoom();
+room.tvSound = !room.tvSound;
+saveDb();
+return room.tvSound;
 }
 
 // update room settings fields
@@ -527,7 +704,7 @@ saveDb();
 // assigns next distinct map color
 function addTeam(name) {
 var room = requireRoom();
-var clean = String(name || '').trim();
+var clean = cleanText(name, 40);
 if (!clean) {
 throw new Error('Team name required');
 }
@@ -673,9 +850,15 @@ saveDb();
 }
 
 // draw next unasked unpainted question
-// enters exhausted phase if none left
+// skips double-tap if already asking
 function drawNextQuestion(forcedNumber) {
 var room = requireRoom();
+if (
+room.round.phase === 'asking' &&
+room.round.currentQuestion
+) {
+return;
+}
 if (room.round.phase === 'waiting') {
 room.round.phase = 'ready';
 }
@@ -801,7 +984,7 @@ saveDb();
 }
 
 // compute and show distance hint on tv
-// only allowed after a wrong answer
+// validates manual tier against allowed set
 function giveDistanceHint(guessedCode, manualTier) {
 var room = requireRoom();
 var cq = room.round.currentQuestion;
@@ -816,7 +999,9 @@ throw new Error(
 'Wrong answer required before hint'
 );
 }
-var tier = manualTier || 'far';
+var tier = VALID_TIERS[manualTier]
+? manualTier
+: 'far';
 var cleanCode = guessedCode
 ? String(guessedCode).toUpperCase()
 : '';
@@ -833,6 +1018,8 @@ throw new Error(
 if (cq.guessedCodes.indexOf(cleanCode) === -1) {
 cq.guessedCodes.push(cleanCode);
 }
+} else if (manualTier && !VALID_TIERS[manualTier]) {
+throw new Error('Invalid hint tier');
 }
 saveUndo(room);
 cq.hintCount += 1;
@@ -923,12 +1110,20 @@ return 0;
 }
 
 // mark correct answer and paint country
-// removes other questions for country
+// requires at least one team in teams mode
 function recordCorrectAnswer(teamIdOverride) {
 var room = requireRoom();
 var cq = room.round.currentQuestion;
 if (room.round.phase !== 'asking' || !cq) {
 throw new Error('No active question');
+}
+if (
+room.gameMode === 'teams' &&
+room.teams.length === 0
+) {
+throw new Error(
+'Add at least one team first'
+);
 }
 saveUndo(room);
 var targetTeamId =
@@ -1032,15 +1227,20 @@ saveDb();
 }
 
 // finish current round and save record
-// adds coop score to async leaderboard
+// skips duplicate calls if already finished
 function finishRound(teamLabel) {
 var room = requireRoom();
+if (room.round.phase === 'finished') {
+return;
+}
 room.round.phase = 'finished';
+room.round.undoSnapshot = null;
 if (room.gameMode === 'coop') {
+var safeLabel = cleanText(teamLabel, 50);
 room.leaderboard.push({
 id: makeId('lb'),
 label:
-teamLabel ||
+safeLabel ||
 (room.lang === 'en'
 ? 'Run #' + room.gameNumber
 : 'Гра #' + room.gameNumber),
@@ -1063,33 +1263,40 @@ saveDb();
 }
 
 // export full database object for backup
-// allows restoring on another device
+// strips hostPin so backup stays portable
 function exportAll() {
-return JSON.parse(JSON.stringify(db));
+var copy = JSON.parse(JSON.stringify(db));
+copy.hostPin = '';
+return copy;
 }
 
 // import database backup payload
-// validates rooms array before saving
+// checks full room schema before saving
 function importAll(payload) {
-if (
-!payload ||
-!Array.isArray(payload.rooms) ||
-payload.rooms.length === 0
-) {
+var clone = null;
+try {
+clone = JSON.parse(JSON.stringify(payload));
+} catch (e) {
 throw new Error('Invalid backup JSON');
 }
-db = payload;
-if (!db.nextEventId) {
-db.nextEventId = 1;
+var valid = fixLoadedDb(clone);
+if (!valid) {
+throw new Error('Invalid backup JSON');
 }
-if (!Array.isArray(db.events)) {
-db.events = [];
-}
+valid.hostPin = db.hostPin || '';
+valid.stateVersion = (db.stateVersion || 0) + 1;
+db = valid;
 saveDb();
 }
 
 module.exports = {
-getPublicState: getPublicState,
+getTvState: getTvState,
+getHostState: getHostState,
+getPublicState: getHostState,
+hasHostPin: hasHostPin,
+checkHostPin: checkHostPin,
+setHostPin: setHostPin,
+toggleTvSound: toggleTvSound,
 createRoom: createRoom,
 selectRoom: selectRoom,
 leaveRoom: leaveRoom,

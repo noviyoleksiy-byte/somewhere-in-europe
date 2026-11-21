@@ -1,7 +1,8 @@
-// question pack parser and loader
+// question pack parser, cache, and loader
 // reads txt packs with optional part 2
 var fs = require('fs');
 var path = require('path');
+var europe = require('./europe.cjs');
 
 var BUILTIN_DIR = path.join(
 __dirname,
@@ -15,9 +16,32 @@ path.join(__dirname, '..', 'data'),
 'packs'
 );
 
+var BUILTIN_FILES = {
+'christmas_uk.txt': true,
+'christmas_en.txt': true,
+'kids_uk.txt': true,
+'kids_en.txt': true,
+'general_uk.txt': true,
+'general_en.txt': true,
+'food_uk.txt': true,
+'food_en.txt': true,
+'nature_uk.txt': true,
+'nature_en.txt': true
+};
+
+var packCache = {};
+var listCache = null;
+
+// clear cached pack data after upload
+// forces fresh read on next request
+function clearPackCache() {
+packCache = {};
+listCache = null;
+}
+
 // make writable packs directory
 // avoids crash on custom pack upload
-function ensurePacksDir() {
+function makePacksDir() {
 if (!fs.existsSync(PACKS_DIR)) {
 fs.mkdirSync(PACKS_DIR, {
 recursive: true
@@ -146,11 +170,14 @@ return list;
 }
 
 // load a single pack file by name
-// returns parsed question list
+// reads from memory cache when available
 function loadPackByFile(fileName) {
 var safeName = path.basename(
 String(fileName || 'christmas_uk.txt')
 );
+if (packCache[safeName]) {
+return packCache[safeName];
+}
 var fullPath = resolvePackPath(safeName);
 if (!fullPath) {
 return {
@@ -162,21 +189,62 @@ var raw = fs.readFileSync(
 fullPath,
 'utf8'
 );
-return {
+var parsed = {
 fileName: safeName,
 list: parseQuestionsText(raw)
 };
+packCache[safeName] = parsed;
+return parsed;
+}
+
+// validate parsed questions before save
+// catches unknown country codes and dupes
+function checkPackQuestions(list) {
+var seenNum = {};
+for (var i = 0; i < list.length; i++) {
+var q = list[i];
+if (!europe.getCountry(q.country)) {
+throw new Error(
+'Unknown country code [' +
+q.country +
+'] in #' +
+q.number
+);
+}
+if (!q.part1) {
+throw new Error(
+'Empty question text in #' + q.number
+);
+}
+if (!q.answerText) {
+throw new Error(
+'Missing --- answer in #' + q.number
+);
+}
+if (seenNum[q.number]) {
+throw new Error(
+'Duplicate question #' + q.number
+);
+}
+seenNum[q.number] = true;
+}
 }
 
 // save uploaded custom txt pack to disk
-// validates parsed question count first
+// guards built-in names and checks format
 function savePackFile(fileName, rawContent) {
-ensurePacksDir();
+makePacksDir();
 var cleanName = path
 .basename(String(fileName || 'custom.txt'))
 .replace(/[^a-zA-Z0-9._-]/g, '_');
 if (!/\.txt$/i.test(cleanName)) {
 cleanName += '.txt';
+}
+if (cleanName.length > 64) {
+cleanName = cleanName.slice(0, 60) + '.txt';
+}
+if (BUILTIN_FILES[cleanName.toLowerCase()]) {
+cleanName = 'custom_' + cleanName;
 }
 var parsed = parseQuestionsText(rawContent);
 if (parsed.length === 0) {
@@ -184,6 +252,7 @@ throw new Error(
 'No valid #N [CC] questions found'
 );
 }
+checkPackQuestions(parsed);
 var fullPath = path.join(
 PACKS_DIR,
 cleanName
@@ -193,6 +262,7 @@ fullPath,
 String(rawContent),
 'utf8'
 );
+clearPackCache();
 return {
 fileName: cleanName,
 count: parsed.length
@@ -200,8 +270,11 @@ count: parsed.length
 }
 
 // list all available txt packs
-// includes built-in labels and counts
+// uses memory cache to skip disk io
 function listAvailablePacks() {
+if (listCache) {
+return listCache;
+}
 var labels = {
 'christmas_uk.txt': {
 uk: 'Різдвяні традиції Європи (UA)',
@@ -317,6 +390,7 @@ if (ia !== -1) return -1;
 if (ib !== -1) return 1;
 return a.file.localeCompare(b.file);
 });
+listCache = out;
 return out;
 }
 
@@ -350,5 +424,6 @@ loadPackByFile: loadPackByFile,
 resolvePackPath: resolvePackPath,
 savePackFile: savePackFile,
 listAvailablePacks: listAvailablePacks,
-buildQueue: buildQueue
+buildQueue: buildQueue,
+clearPackCache: clearPackCache
 };

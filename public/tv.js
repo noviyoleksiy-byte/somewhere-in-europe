@@ -31,8 +31,12 @@ var hostFrame =
 document.getElementById('debug-host-frame');
 
 var latestState = null;
+var lastStateVersion = -1;
 var lastEventId = 0;
 var hasPolledOnce = false;
+var pollBusy = false;
+var rafPending = false;
+var needsDraw = true;
 var hostOpen = false;
 var debugUnlocked = false;
 var secretClicks = 0;
@@ -332,19 +336,18 @@ toggleHostDrawer();
 if (soundBtn) {
 soundBtn.onclick = function () {
 unlockAudio();
-var cur =
-latestState &&
-latestState.room &&
-latestState.room.tvSound;
 var xhr = new XMLHttpRequest();
-xhr.open('POST', '/api/settings', true);
+xhr.open('POST', '/api/tv-sound', true);
 xhr.setRequestHeader(
 'Content-Type',
 'application/json;charset=UTF-8'
 );
-xhr.send(
-JSON.stringify({ tvSound: !cur })
-);
+xhr.onreadystatechange = function () {
+if (xhr.readyState === 4 && xhr.status === 200) {
+pollState();
+}
+};
+xhr.send('{}');
 };
 }
 
@@ -359,13 +362,13 @@ var theme =
 var t = window.APP_I18N[lang];
 
 waitingEl.className = 'theme-' + theme;
-titleEl.innerHTML = t.gameTitle;
-subEl.innerHTML = t.gameSubtitle;
-hintEl.innerHTML = t.waitingHint;
-fsBtn.innerHTML = t.btnFullscreen;
-hostBtn.innerHTML = t.btnOpenHost;
+titleEl.textContent = t.gameTitle;
+subEl.textContent = t.gameSubtitle;
+hintEl.textContent = t.waitingHint;
+fsBtn.textContent = t.btnFullscreen;
+hostBtn.textContent = t.btnOpenHost;
 var sndOn = room ? room.tvSound : true;
-soundBtn.innerHTML = sndOn
+soundBtn.textContent = sndOn
 ? t.btnSoundOn
 : t.btnSoundOff;
 soundBtn.className = sndOn
@@ -381,20 +384,74 @@ waitingEl.style.display = showWait
 : 'none';
 }
 
+var raf =
+window.requestAnimationFrame ||
+function (fn) {
+return setTimeout(fn, 33);
+};
+
+// schedule canvas draw only when needed
+// avoids burning tv cpu while idle
+function kickRender() {
+needsDraw = true;
+if (!rafPending) {
+rafPending = true;
+raf(drawStep);
+}
+}
+window.TV_KICK_RENDER = kickRender;
+
+function drawStep() {
+rafPending = false;
+if (
+ctx &&
+window.TV_RENDERER &&
+latestState &&
+latestState.room
+) {
+var anim =
+typeof window.TV_RENDERER.needsAnimation ===
+'function'
+? window.TV_RENDERER.needsAnimation(
+latestState
+)
+: true;
+if (needsDraw || anim) {
+needsDraw = false;
+window.TV_RENDERER.render(
+ctx,
+latestState
+);
+if (anim) {
+rafPending = true;
+raf(drawStep);
+}
+}
+}
+}
+
 // poll /api/state every 450ms via xhr
-// processes new animation and audio events
+// skips overlap and ignores stale state
 function pollState() {
+if (pollBusy) return;
+pollBusy = true;
 var xhr = new XMLHttpRequest();
 xhr.open('GET', '/api/state', true);
 xhr.onreadystatechange = function () {
-if (
-xhr.readyState === 4 &&
-xhr.status === 200
-) {
+if (xhr.readyState !== 4) return;
+pollBusy = false;
+if (xhr.status !== 200) return;
 try {
 var next = JSON.parse(
 xhr.responseText
 );
+var ver = next.stateVersion || 0;
+if (ver < lastStateVersion) {
+return;
+}
+var changed =
+ver !== lastStateVersion || !hasPolledOnce;
+lastStateVersion = ver;
 latestState = next;
 var evs = next.events || [];
 if (!hasPolledOnce) {
@@ -411,6 +468,7 @@ var theme =
 for (var i = 0; i < evs.length; i++) {
 if (evs[i].id > lastEventId) {
 lastEventId = evs[i].id;
+changed = true;
 if (window.TV_RENDERER) {
 window.TV_RENDERER.triggerEvent(
 evs[i]
@@ -420,32 +478,13 @@ playEventSound(evs[i].type, theme);
 }
 }
 }
+if (changed) {
 syncWaitingOverlay();
-} catch (e) {}
+kickRender();
 }
+} catch (e) {}
 };
 xhr.send();
-}
-
-var raf =
-window.requestAnimationFrame ||
-function (fn) {
-return setTimeout(fn, 33);
-};
-
-function loop() {
-if (
-ctx &&
-window.TV_RENDERER &&
-latestState &&
-latestState.room
-) {
-window.TV_RENDERER.render(
-ctx,
-latestState
-);
-}
-raf(loop);
 }
 
 // apply uniform tv scale on resize
@@ -454,11 +493,11 @@ function onResize() {
 if (window.TV_SCALE) {
 window.TV_SCALE.applyScale(stageEl);
 }
+kickRender();
 }
 
 window.addEventListener('resize', onResize);
 onResize();
 pollState();
 setInterval(pollState, 450);
-loop();
 })();
