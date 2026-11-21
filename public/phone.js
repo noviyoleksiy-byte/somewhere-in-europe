@@ -6,8 +6,8 @@ var countries = [];
 var packQuestions = [];
 var activeView = 'live';
 var pickerOpen = false;
-var newRoomTheme = 'christmas';
-var uiLang = 'uk';
+var newRoomTheme = 'rowan';
+var uiLang = 'en';
 var confirmTimers = {};
 var errTimer = null;
 
@@ -135,7 +135,7 @@ function getT() {
 var lang =
 (state && state.room && state.room.lang) ||
 uiLang;
-if (lang !== 'en') lang = 'uk';
+if (lang !== 'uk') lang = 'en';
 return {
 lang: lang,
 t: window.APP_I18N[lang]
@@ -164,6 +164,8 @@ $('new-room-name').placeholder =
 t.newRoomPh;
 $('btn-create-room').innerHTML =
 t.btnCreateRoom;
+$('new-theme-rowan').innerHTML =
+t.themeRowan;
 $('new-theme-std').innerHTML =
 t.themeStandard;
 $('new-theme-dark').innerHTML =
@@ -187,6 +189,8 @@ $('lbl-phase').innerHTML = t.phaseLbl;
 $('lbl-map').innerHTML = t.mapLbl;
 $('lbl-theme-bar').innerHTML =
 t.themeBarTitle;
+$('live-theme-rowan').innerHTML =
+t.themeRowan;
 $('live-theme-std').innerHTML =
 t.themeStandard;
 $('live-theme-dark').innerHTML =
@@ -843,6 +847,10 @@ $('btn-bonus-off').className =
 ? 'pill-btn selected'
 : 'pill-btn';
 
+$('live-theme-rowan').className =
+room.theme === 'rowan'
+? 'pill-btn selected'
+: 'pill-btn';
 $('live-theme-std').className =
 room.theme === 'standard'
 ? 'pill-btn selected'
@@ -981,26 +989,37 @@ render();
 }
 };
 
-$('new-theme-std').onclick = function () {
-newRoomTheme = 'standard';
+function setNewThemeBtn(theme) {
+newRoomTheme = theme;
+$('new-theme-rowan').className =
+theme === 'rowan'
+? 'pill-btn selected'
+: 'pill-btn';
 $('new-theme-std').className =
-'pill-btn selected';
-$('new-theme-dark').className = 'pill-btn';
-$('new-theme-xmas').className = 'pill-btn';
+theme === 'standard'
+? 'pill-btn selected'
+: 'pill-btn';
+$('new-theme-dark').className =
+theme === 'dark'
+? 'pill-btn selected'
+: 'pill-btn';
+$('new-theme-xmas').className =
+theme === 'christmas'
+? 'pill-btn selected'
+: 'pill-btn';
+}
+
+$('new-theme-rowan').onclick = function () {
+setNewThemeBtn('rowan');
+};
+$('new-theme-std').onclick = function () {
+setNewThemeBtn('standard');
 };
 $('new-theme-dark').onclick = function () {
-newRoomTheme = 'dark';
-$('new-theme-std').className = 'pill-btn';
-$('new-theme-dark').className =
-'pill-btn selected';
-$('new-theme-xmas').className = 'pill-btn';
+setNewThemeBtn('dark');
 };
 $('new-theme-xmas').onclick = function () {
-newRoomTheme = 'christmas';
-$('new-theme-std').className = 'pill-btn';
-$('new-theme-dark').className = 'pill-btn';
-$('new-theme-xmas').className =
-'pill-btn selected';
+setNewThemeBtn('christmas');
 };
 
 $('btn-create-room').onclick = function () {
@@ -1035,6 +1054,9 @@ state && state.room && state.room.tvSound;
 apiPost('/api/settings', { tvSound: !cur });
 };
 
+$('live-theme-rowan').onclick = function () {
+apiPost('/api/settings', { theme: 'rowan' });
+};
 $('live-theme-std').onclick = function () {
 apiPost('/api/settings', { theme: 'standard' });
 };

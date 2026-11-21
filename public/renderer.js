@@ -1,5 +1,5 @@
 // procedural 1920x1080 canvas tv renderer
-// supports 3 themes and strict es5
+// supports 4 themes and strict es5
 window.TV_RENDERER = (function () {
 var W = 1920;
 var H = 1080;
@@ -7,6 +7,26 @@ var MIN_X = 64;
 var SPAN_X = 190;
 var MIN_Y = 4;
 var SPAN_Y = 142;
+
+var rowanLogo = {
+img: null,
+ready: false
+};
+
+// preload rowan events svg brand logo
+// draws crisply on canvas once loaded
+(function loadRowanLogo() {
+if (typeof Image === 'undefined') {
+return;
+}
+var img = new Image();
+img.onload = function () {
+rowanLogo.ready = true;
+};
+img.src =
+'assets/aistudio/rowan-events-option-1_004e6aed.svg';
+rowanLogo.img = img;
+})();
 
 var animState = {
 revealCode: null,
@@ -39,8 +59,37 @@ alpha: 0.28 + Math.random() * 0.62
 }
 
 // return color tokens for active theme
-// maps standard, dark, and christmas
+// maps rowan, standard, dark, christmas
 function getThemePalette(theme) {
+if (theme === 'rowan') {
+return {
+seaTop: '#f8f3e6',
+seaBot: '#ebe1c8',
+grid: 'rgba(7,46,27,0.075)',
+land: '#d5dec6',
+border: '#244935',
+paintedBorder: '#fdfaf1',
+panelBg: 'rgba(253,250,241,0.97)',
+panelBorder: '#072e1b',
+innerTrim: '#b58b42',
+panelText: '#072e1b',
+mutedText: '#496655',
+accent: '#c81e06',
+accentText: '#fdfaf1',
+part2Bg: 'rgba(216,30,5,0.08)',
+part2Border: '#d81e05',
+badgeBg: '#072e1b',
+badgeText: '#f4f7f5',
+ptsFullBg: '#14532d',
+ptsHalfBg: '#d81e05',
+revealColor: '#0f5c34',
+activeRowBg: 'rgba(7,46,27,0.10)',
+finishMapBg: 'rgba(7,46,27,0.045)',
+headingFont: 'Georgia, serif',
+floatStroke: 'rgba(7,46,27,0.94)',
+floatFill: '#fdfaf1'
+};
+}
 if (theme === 'standard') {
 return {
 seaTop: '#0e3c6b',
@@ -48,8 +97,10 @@ seaBot: '#1b5d9a',
 grid: 'rgba(255,255,255,0.10)',
 land: '#e2e8f0',
 border: '#475569',
+paintedBorder: '#ffffff',
 panelBg: 'rgba(255,255,255,0.95)',
 panelBorder: '#2563eb',
+innerTrim: null,
 panelText: '#0f172a',
 mutedText: '#475569',
 accent: '#d97706',
@@ -57,7 +108,15 @@ accentText: '#ffffff',
 part2Bg: 'rgba(245,158,11,0.16)',
 part2Border: '#d97706',
 badgeBg: '#1e40af',
-badgeText: '#ffffff'
+badgeText: '#ffffff',
+ptsFullBg: '#059669',
+ptsHalfBg: '#d97706',
+revealColor: '#059669',
+activeRowBg: 'rgba(59,130,246,0.22)',
+finishMapBg: 'rgba(2,6,23,0.34)',
+headingFont: 'sans-serif',
+floatStroke: 'rgba(2,6,23,0.9)',
+floatFill: '#ffffff'
 };
 }
 if (theme === 'christmas') {
@@ -67,8 +126,10 @@ seaBot: '#0c2f29',
 grid: 'rgba(167,243,208,0.08)',
 land: '#1c3b35',
 border: '#86efac',
+paintedBorder: '#ffffff',
 panelBg: 'rgba(12,35,30,0.94)',
 panelBorder: '#f59e0b',
+innerTrim: null,
 panelText: '#fef3c7',
 mutedText: '#a7f3d0',
 accent: '#dc2626',
@@ -76,7 +137,15 @@ accentText: '#ffffff',
 part2Bg: 'rgba(245,158,11,0.18)',
 part2Border: '#fbbf24',
 badgeBg: '#b91c1c',
-badgeText: '#fef3c7'
+badgeText: '#fef3c7',
+ptsFullBg: '#059669',
+ptsHalfBg: '#d97706',
+revealColor: '#10b981',
+activeRowBg: 'rgba(59,130,246,0.22)',
+finishMapBg: 'rgba(2,6,23,0.34)',
+headingFont: 'sans-serif',
+floatStroke: 'rgba(2,6,23,0.9)',
+floatFill: '#ffffff'
 };
 }
 return {
@@ -85,8 +154,10 @@ seaBot: '#111827',
 grid: 'rgba(148,163,184,0.10)',
 land: '#1e293b',
 border: '#94a3b8',
+paintedBorder: '#ffffff',
 panelBg: 'rgba(15,23,42,0.94)',
 panelBorder: '#38bdf8',
+innerTrim: null,
 panelText: '#f8fafc',
 mutedText: '#94a3b8',
 accent: '#f59e0b',
@@ -94,7 +165,15 @@ accentText: '#0f172a',
 part2Bg: 'rgba(251,191,36,0.15)',
 part2Border: '#fbbf24',
 badgeBg: '#0284c7',
-badgeText: '#ffffff'
+badgeText: '#ffffff',
+ptsFullBg: '#059669',
+ptsHalfBg: '#d97706',
+revealColor: '#10b981',
+activeRowBg: 'rgba(59,130,246,0.22)',
+finishMapBg: 'rgba(2,6,23,0.34)',
+headingFont: 'sans-serif',
+floatStroke: 'rgba(2,6,23,0.9)',
+floatFill: '#ffffff'
 };
 }
 
@@ -221,6 +300,40 @@ ctx.quadraticCurveTo(x, y, x + r, y);
 ctx.closePath();
 }
 
+// draw card shell with optional trim
+// adds brass inset rule on rowan theme
+function drawCardBox(
+ctx,
+x,
+y,
+w,
+h,
+r,
+pal,
+strokeCol,
+lw
+) {
+drawRoundRect(ctx, x, y, w, h, r);
+ctx.fillStyle = pal.panelBg;
+ctx.fill();
+ctx.strokeStyle = strokeCol;
+ctx.lineWidth = lw;
+ctx.stroke();
+if (pal.innerTrim) {
+drawRoundRect(
+ctx,
+x + 7,
+y + 7,
+w - 14,
+h - 14,
+Math.max(6, r - 5)
+);
+ctx.strokeStyle = pal.innerTrim;
+ctx.lineWidth = 1.25;
+ctx.stroke();
+}
+}
+
 // find country geometry record by code
 // scans loaded EUROPE_MAP array
 function findMapCountry(code) {
@@ -234,8 +347,294 @@ return list[i];
 return null;
 }
 
-// draw sea background and subtle snow
-// omits top garland to keep map clean
+// draw single layered botanical hop cone
+// uses rotated oval bracts in pub greens
+function drawHopCone(ctx, x, y, ang, sc) {
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.scale(sc, sc);
+
+var tiers = [
+{ y: -12, rx: 10, ry: 7, c: '#355f3b' },
+{ y: -5, rx: 12.5, ry: 8, c: '#4d7c46' },
+{ y: 3, rx: 11.5, ry: 8, c: '#6f9650' },
+{ y: 11, rx: 8.5, ry: 7, c: '#96ae5e' },
+{ y: 17, rx: 5, ry: 5, c: '#b3be71' }
+];
+for (var i = 0; i < tiers.length; i++) {
+var tr = tiers[i];
+ctx.fillStyle = tr.c;
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 1.1;
+
+ctx.beginPath();
+ctx.save();
+ctx.translate(-tr.rx * 0.42, tr.y);
+ctx.scale(1, tr.ry / tr.rx);
+ctx.arc(0, 0, tr.rx * 0.72, 0, Math.PI * 2);
+ctx.restore();
+ctx.fill();
+ctx.stroke();
+
+ctx.beginPath();
+ctx.save();
+ctx.translate(tr.rx * 0.42, tr.y);
+ctx.scale(1, tr.ry / tr.rx);
+ctx.arc(0, 0, tr.rx * 0.72, 0, Math.PI * 2);
+ctx.restore();
+ctx.fill();
+ctx.stroke();
+
+ctx.beginPath();
+ctx.save();
+ctx.translate(0, tr.y + 2);
+ctx.scale(1, (tr.ry * 0.9) / (tr.rx * 0.72));
+ctx.arc(0, 0, tr.rx * 0.65, 0, Math.PI * 2);
+ctx.restore();
+ctx.fill();
+ctx.stroke();
+}
+ctx.restore();
+}
+
+// draw small rowan berry & leaf cluster
+// echoes scarlet berries in brand logo
+function drawRowanCluster(
+ctx,
+x,
+y,
+ang,
+sc
+) {
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.scale(sc, sc);
+
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(-26, 2);
+ctx.quadraticCurveTo(0, -8, 22, 6);
+ctx.stroke();
+
+var leaves = [
+{ x: -16, y: -6, a: -0.7 },
+{ x: -6, y: -11, a: -0.35 },
+{ x: -12, y: 8, a: 0.75 },
+{ x: 4, y: -10, a: 0.25 }
+];
+for (var l = 0; l < leaves.length; l++) {
+var lv = leaves[l];
+ctx.save();
+ctx.translate(lv.x, lv.y);
+ctx.rotate(lv.a);
+ctx.fillStyle = '#194d32';
+ctx.beginPath();
+ctx.moveTo(-10, 0);
+ctx.quadraticCurveTo(0, -5, 10, 0);
+ctx.quadraticCurveTo(0, 5, -10, 0);
+ctx.fill();
+ctx.restore();
+}
+
+var berries = [
+{ x: 10, y: 0, r: 4.5, c: '#b91604' },
+{ x: 17, y: 4, r: 4.8, c: '#d81e05' },
+{ x: 12, y: 9, r: 4.5, c: '#f22c08' },
+{ x: 22, y: -2, r: 4.3, c: '#d81e05' },
+{ x: 20, y: 11, r: 4.2, c: '#b91604' }
+];
+for (var b = 0; b < berries.length; b++) {
+var br = berries[b];
+ctx.fillStyle = br.c;
+ctx.beginPath();
+ctx.arc(br.x, br.y, br.r, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = '#ff642e';
+ctx.beginPath();
+ctx.arc(
+br.x - 1.3,
+br.y - 1.3,
+1.4,
+0,
+Math.PI * 2
+);
+ctx.fill();
+}
+ctx.restore();
+}
+
+// draw subtle antique atlas compass rose
+// sits in open southeast sea corner
+function drawCompassRose(ctx, cx, cy, rad) {
+ctx.save();
+ctx.translate(cx, cy);
+ctx.globalAlpha = 0.24;
+
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 1.6;
+ctx.beginPath();
+ctx.arc(0, 0, rad, 0, Math.PI * 2);
+ctx.stroke();
+
+ctx.strokeStyle = '#b58b42';
+ctx.lineWidth = 1.2;
+ctx.beginPath();
+ctx.arc(0, 0, rad - 7, 0, Math.PI * 2);
+ctx.stroke();
+
+var angles = [0, 90, 180, 270];
+for (var i = 0; i < angles.length; i++) {
+var a = (angles[i] * Math.PI) / 180;
+ctx.save();
+ctx.rotate(a);
+ctx.fillStyle = '#072e1b';
+ctx.beginPath();
+ctx.moveTo(0, -rad + 6);
+ctx.lineTo(9, 0);
+ctx.lineTo(0, 0);
+ctx.closePath();
+ctx.fill();
+
+ctx.fillStyle = '#b58b42';
+ctx.beginPath();
+ctx.moveTo(0, -rad + 6);
+ctx.lineTo(-9, 0);
+ctx.lineTo(0, 0);
+ctx.closePath();
+ctx.fill();
+ctx.restore();
+}
+
+var diag = [45, 135, 225, 315];
+for (var d = 0; d < diag.length; d++) {
+var da = (diag[d] * Math.PI) / 180;
+ctx.save();
+ctx.rotate(da);
+ctx.fillStyle = '#496655';
+ctx.beginPath();
+ctx.moveTo(0, -(rad * 0.62));
+ctx.lineTo(5, 0);
+ctx.lineTo(-5, 0);
+ctx.closePath();
+ctx.fill();
+ctx.restore();
+}
+
+ctx.fillStyle = '#072e1b';
+ctx.font = 'bold 14px Georgia, serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('N', 0, -rad - 11);
+ctx.fillText('S', 0, rad + 12);
+ctx.fillText('E', rad + 11, 0);
+ctx.fillText('W', -rad - 12, 0);
+ctx.restore();
+}
+
+// draw heritage frame and pub botanicals
+// keeps map and text totally unobstructed
+function drawRowanDecor(ctx) {
+ctx.save();
+
+ctx.strokeStyle = '#072e1b';
+ctx.lineWidth = 2.5;
+ctx.strokeRect(12, 12, W - 24, H - 24);
+
+ctx.strokeStyle = '#b58b42';
+ctx.lineWidth = 1.25;
+ctx.strokeRect(19, 19, W - 38, H - 38);
+
+var corners = [
+[19, 19],
+[W - 19, 19],
+[19, H - 19],
+[W - 19, H - 19]
+];
+for (var c = 0; c < corners.length; c++) {
+ctx.fillStyle = '#072e1b';
+ctx.beginPath();
+ctx.arc(
+corners[c][0],
+corners[c][1],
+4.5,
+0,
+Math.PI * 2
+);
+ctx.fill();
+ctx.fillStyle = '#b58b42';
+ctx.beginPath();
+ctx.arc(
+corners[c][0],
+corners[c][1],
+2,
+0,
+Math.PI * 2
+);
+ctx.fill();
+}
+
+drawCompassRose(ctx, 1756, 892, 54);
+
+drawHopCone(ctx, 1848, 1002, -0.55, 1.15);
+drawHopCone(ctx, 1812, 1022, -1.15, 0.92);
+drawRowanCluster(ctx, 1844, 1026, -2.55, 1.05);
+
+drawHopCone(ctx, 42, 40, 0.95, 0.72);
+drawRowanCluster(ctx, 72, 36, 0.15, 0.78);
+
+ctx.restore();
+}
+
+// draw compact hop & berry crest on score
+// sits neatly on scoreboard top border
+function drawRowanScoreCrest(ctx, x, y, w) {
+var cx = x + w / 2;
+ctx.save();
+drawHopCone(ctx, cx - 22, y - 2, -1.25, 0.56);
+drawHopCone(ctx, cx + 22, y - 2, 1.25, 0.56);
+var dots = [
+{ dx: -6, dy: -2, r: 3.6, c: '#b91604' },
+{ dx: 0, dy: -5, r: 4.1, c: '#d81e05' },
+{ dx: 6, dy: -2, r: 3.6, c: '#f22c08' }
+];
+for (var i = 0; i < dots.length; i++) {
+ctx.fillStyle = dots[i].c;
+ctx.beginPath();
+ctx.arc(
+cx + dots[i].dx,
+y + dots[i].dy,
+dots[i].r,
+0,
+Math.PI * 2
+);
+ctx.fill();
+}
+ctx.restore();
+}
+
+// draw rowan brand logo in top-right sea
+// keeps full clear margin from finland
+function drawRowanCornerLogo(ctx, room) {
+if (!rowanLogo.ready || !rowanLogo.img) {
+return;
+}
+var phase =
+room && room.round ? room.round.phase : 'ready';
+var lw = phase === 'finished' ? 196 : 218;
+var lh = Math.round(lw * (260 / 685));
+var lx = phase === 'finished' ? 1662 : 1664;
+var ly = phase === 'finished' ? 62 : 34;
+
+ctx.save();
+ctx.drawImage(rowanLogo.img, lx, ly, lw, lh);
+ctx.restore();
+}
+
+// draw sea background and theme decor
+// picks snow/garlands or pub botanicals
 function drawBackdrop(ctx, pal, theme, now) {
 var grad = ctx.createLinearGradient(
 0,
@@ -265,6 +664,8 @@ ctx.stroke();
 
 if (theme === 'christmas') {
 drawSideChristmasDecor(ctx, now);
+} else if (theme === 'rowan') {
+drawRowanDecor(ctx);
 }
 }
 
@@ -412,6 +813,7 @@ h: 1010
 function drawFloatingRevealLabel(
 ctx,
 mapBox,
+pal,
 lang,
 now
 ) {
@@ -442,7 +844,7 @@ var alpha =
 lt < 0.14
 ? lt / 0.14
 : Math.max(0, 1 - (lt - 0.14) / 0.86);
-var label = lang === 'en' ? lc.en : lc.uk;
+var label = lang === 'uk' ? lc.uk : lc.en;
 
 ctx.save();
 ctx.globalAlpha = alpha;
@@ -450,11 +852,11 @@ ctx.translate(lx, ly);
 ctx.scale(scale, scale);
 ctx.textAlign = 'center';
 ctx.textBaseline = 'middle';
-ctx.font = 'bold 28px sans-serif';
+ctx.font = 'bold 28px ' + pal.headingFont;
 ctx.lineWidth = 6;
-ctx.strokeStyle = 'rgba(2,6,23,0.9)';
+ctx.strokeStyle = pal.floatStroke;
 ctx.strokeText(label, 0, 0);
-ctx.fillStyle = '#ffffff';
+ctx.fillStyle = pal.floatFill;
 ctx.fillText(label, 0, 0);
 ctx.restore();
 }
@@ -473,7 +875,7 @@ var painted =
 (room.round && room.round.painted) || {};
 var cq =
 room.round && room.round.currentQuestion;
-var lang = room.lang === 'en' ? 'en' : 'uk';
+var lang = room.lang === 'uk' ? 'uk' : 'en';
 
 if (phase === 'finished') {
 ctx.save();
@@ -485,7 +887,7 @@ mapBox.w + 32,
 mapBox.h + 32,
 22
 );
-ctx.fillStyle = 'rgba(2,6,23,0.34)';
+ctx.fillStyle = pal.finishMapBg;
 ctx.fill();
 ctx.strokeStyle = pal.panelBorder;
 ctx.lineWidth = 2.5;
@@ -502,7 +904,7 @@ traceCountry(ctx, c, mapBox);
 ctx.fillStyle = pal.land;
 ctx.fill();
 ctx.strokeStyle = pal.border;
-ctx.lineWidth = 1.6;
+ctx.lineWidth = 1.65;
 ctx.stroke();
 }
 
@@ -522,7 +924,7 @@ traceCountry(ctx, pc, mapBox);
 ctx.fillStyle = pal.land;
 ctx.fill();
 ctx.strokeStyle = pal.border;
-ctx.lineWidth = 1.6;
+ctx.lineWidth = 1.65;
 ctx.stroke();
 
 var t =
@@ -545,7 +947,7 @@ ctx.fillStyle = pInfo.color;
 ctx.fill();
 }
 traceCountry(ctx, pc, mapBox);
-ctx.strokeStyle = '#ffffff';
+ctx.strokeStyle = pal.paintedBorder;
 ctx.lineWidth = 2.2;
 ctx.stroke();
 }
@@ -566,10 +968,10 @@ if (!gc) continue;
 var gx = projX(gc.cx, mapBox);
 var gy = projY(gc.cy, mapBox);
 ctx.save();
-ctx.fillStyle = 'rgba(239,68,68,0.42)';
+ctx.fillStyle = 'rgba(216,30,5,0.40)';
 traceCountry(ctx, gc, mapBox);
 ctx.fill();
-ctx.strokeStyle = '#fca5a5';
+ctx.strokeStyle = '#b91604';
 ctx.lineWidth = 2;
 ctx.stroke();
 ctx.fillStyle = '#ffffff';
@@ -595,10 +997,10 @@ var ht =
 1000;
 var ringCol =
 animState.hintTier === 'neighbor'
-? '#22c55e'
+? '#15803d'
 : animState.hintTier === 'close'
-? '#fbbf24'
-: '#38bdf8';
+? '#d97706'
+: '#1d4ed8';
 ctx.save();
 ctx.strokeStyle = ringCol;
 ctx.lineWidth = 4.5;
@@ -616,7 +1018,13 @@ ctx.restore();
 }
 }
 
-drawFloatingRevealLabel(ctx, mapBox, lang, now);
+drawFloatingRevealLabel(
+ctx,
+mapBox,
+pal,
+lang,
+now
+);
 }
 
 // compute scoreboard height below card
@@ -670,12 +1078,17 @@ var paintedCount = Object.keys(
 var totalCountries = 37;
 
 ctx.save();
-drawRoundRect(ctx, x, y, boxW, boxH, 16);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle = pal.panelBorder;
-ctx.lineWidth = 2.5;
-ctx.stroke();
+drawCardBox(
+ctx,
+x,
+y,
+boxW,
+boxH,
+16,
+pal,
+pal.panelBorder,
+2.5
+);
 
 if (room.gameMode === 'coop') {
 ctx.fillStyle = pal.mutedText;
@@ -683,7 +1096,7 @@ ctx.font = 'bold 16px sans-serif';
 ctx.fillText(t.tvCoopTeam, x + 22, y + 34);
 
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 48px sans-serif';
+ctx.font = 'bold 48px ' + pal.headingFont;
 ctx.fillText(
 String(room.coopScore || 0),
 x + 22,
@@ -699,7 +1112,7 @@ x + boxW - 22,
 y + 42
 );
 ctx.fillStyle = pal.accent;
-ctx.font = 'bold 34px sans-serif';
+ctx.font = 'bold 34px ' + pal.headingFont;
 ctx.fillText(
 paintedCount + ' / ' + totalCountries,
 x + boxW - 22,
@@ -709,6 +1122,8 @@ ctx.textAlign = 'left';
 ctx.restore();
 if (theme === 'christmas') {
 drawScoreboardGarland(ctx, x, y, boxW, now);
+} else if (theme === 'rowan') {
+drawRowanScoreCrest(ctx, x, y, boxW);
 }
 return;
 }
@@ -726,7 +1141,7 @@ var rowH = 38;
 var headerH = 54;
 
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 19px sans-serif';
+ctx.font = 'bold 19px ' + pal.headingFont;
 var rTitle = room.name || '';
 if (rTitle.length > 22) {
 rTitle = rTitle.slice(0, 21) + '…';
@@ -758,15 +1173,8 @@ var cx = x + 14 + colIdx * (cellW + 8);
 var ry = y + headerH + rowIdx * rowH;
 
 if (tm.id === activeId) {
-drawRoundRect(
-ctx,
-cx,
-ry,
-cellW,
-34,
-8
-);
-ctx.fillStyle = 'rgba(59,130,246,0.22)';
+drawRoundRect(ctx, cx, ry, cellW, 34, 8);
+ctx.fillStyle = pal.activeRowBg;
 ctx.fill();
 }
 ctx.fillStyle = tm.color;
@@ -797,6 +1205,8 @@ ctx.restore();
 
 if (theme === 'christmas') {
 drawScoreboardGarland(ctx, x, y, boxW, now);
+} else if (theme === 'rowan') {
+drawRowanScoreCrest(ctx, x, y, boxW);
 }
 }
 
@@ -815,7 +1225,7 @@ if (phase === 'finished') {
 return;
 }
 var cq = round.currentQuestion;
-var lang = room.lang === 'en' ? 'en' : 'uk';
+var lang = room.lang === 'uk' ? 'uk' : 'en';
 var met = getScoreboardMetrics(room);
 
 var cardX = 36;
@@ -830,15 +1240,20 @@ if (phase === 'exhausted') {
 ctx.save();
 var exY = Math.max(topY, botY - 400);
 var exH = botY - exY;
-drawRoundRect(ctx, cardX, exY, cardW, exH, 22);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle = '#f59e0b';
-ctx.lineWidth = 3.5;
-ctx.stroke();
+drawCardBox(
+ctx,
+cardX,
+exY,
+cardW,
+exH,
+22,
+pal,
+pal.accent,
+3.5
+);
 
-ctx.fillStyle = '#fbbf24';
-ctx.font = 'bold 34px sans-serif';
+ctx.fillStyle = pal.accent;
+ctx.font = 'bold 34px ' + pal.headingFont;
 var exT = wrapText(
 ctx,
 t.tvExhaustedTitle,
@@ -881,15 +1296,20 @@ if (phase === 'ready' || !cq) {
 ctx.save();
 var rY = Math.max(topY, botY - 380);
 var rH = botY - rY;
-drawRoundRect(ctx, cardX, rY, cardW, rH, 22);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle = pal.panelBorder;
-ctx.lineWidth = 3;
-ctx.stroke();
+drawCardBox(
+ctx,
+cardX,
+rY,
+cardW,
+rH,
+22,
+pal,
+pal.panelBorder,
+3
+);
 
 ctx.fillStyle = pal.accent;
-ctx.font = 'bold 24px sans-serif';
+ctx.font = 'bold 24px ' + pal.headingFont;
 ctx.fillText(
 room.name || t.gameTitle,
 cardX + 28,
@@ -897,11 +1317,11 @@ rY + 56
 );
 
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 34px sans-serif';
+ctx.font = 'bold 34px ' + pal.headingFont;
 var readyMsg =
-lang === 'en'
-? 'Ready! Host is picking the next European riddle...'
-: 'Готові! Ведучий обирає наступну загадку про Європу...';
+lang === 'uk'
+? 'Готові! Ведучий обирає наступну загадку про Європу...'
+: 'Ready! Host is picking the next European riddle...';
 var rLines = wrapText(ctx, readyMsg, cardW - 56);
 for (var rl = 0; rl < rLines.length; rl++) {
 ctx.fillText(
@@ -915,22 +1335,19 @@ return;
 }
 
 ctx.save();
-drawRoundRect(
+drawCardBox(
 ctx,
 cardX,
 topY,
 cardW,
 cardH,
-22
-);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle =
+22,
+pal,
 phase === 'revealed'
-? '#10b981'
-: pal.panelBorder;
-ctx.lineWidth = 3.5;
-ctx.stroke();
+? pal.revealColor
+: pal.panelBorder,
+3.5
+);
 
 ctx.fillStyle = pal.badgeBg;
 drawRoundRect(
@@ -955,8 +1372,8 @@ if (cq.isHalfValue) {
 ptsText += ' (½)';
 }
 ctx.fillStyle = cq.isHalfValue
-? '#d97706'
-: '#059669';
+? pal.ptsHalfBg
+: pal.ptsFullBg;
 drawRoundRect(
 ctx,
 cardX + 210,
@@ -1002,17 +1419,17 @@ contentY += 46;
 if (phase === 'revealed') {
 var cObj = findMapCountry(cq.country);
 var cName = cObj
-? lang === 'en'
-? cObj.en
-: cObj.uk
+? lang === 'uk'
+? cObj.uk
+: cObj.en
 : cq.country;
 var cap = cObj
-? lang === 'en'
-? cObj.capEn
-: cObj.capUk
+? lang === 'uk'
+? cObj.capUk
+: cObj.capEn
 : '';
-ctx.fillStyle = '#10b981';
-ctx.font = 'bold 34px sans-serif';
+ctx.fillStyle = pal.revealColor;
+ctx.font = 'bold 34px ' + pal.headingFont;
 var cLines = wrapText(
 ctx,
 cName + (cap ? ' — ' + cap : ''),
@@ -1047,7 +1464,7 @@ return;
 if (!room.showQuestionOnTv) {
 ctx.textAlign = 'center';
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 36px sans-serif';
+ctx.font = 'bold 36px ' + pal.headingFont;
 var listenLines = wrapText(
 ctx,
 t.tvListenHost,
@@ -1139,7 +1556,7 @@ ctx.restore();
 }
 
 // draw distance hint banner over top sea
-// shows guessed country and proximity
+// leaves right corner free for brand logo
 function drawHintToast(ctx, hint, t, lang) {
 var textTier =
 hint.tier === 'neighbor'
@@ -1157,14 +1574,14 @@ var label = textTier;
 if (hint.guessedCode) {
 var gc = findMapCountry(hint.guessedCode);
 var gName = gc
-? lang === 'en'
-? gc.en
-: gc.uk
+? lang === 'uk'
+? gc.uk
+: gc.en
 : hint.guessedCode;
 label = gName + ' → ' + textTier;
 }
 ctx.save();
-drawRoundRect(ctx, 640, 26, 1080, 66, 16);
+drawRoundRect(ctx, 570, 26, 1040, 66, 16);
 ctx.fillStyle = bg;
 ctx.fill();
 ctx.strokeStyle = '#ffffff';
@@ -1174,7 +1591,7 @@ ctx.stroke();
 ctx.textAlign = 'center';
 ctx.fillStyle = '#ffffff';
 ctx.font = 'bold 28px sans-serif';
-ctx.fillText(label, 1180, 69);
+ctx.fillText(label, 1090, 69);
 ctx.restore();
 }
 
@@ -1190,16 +1607,21 @@ var paintedCount = Object.keys(
 ).length;
 
 ctx.save();
-drawRoundRect(ctx, px, py, pw, ph, 24);
-ctx.fillStyle = pal.panelBg;
-ctx.fill();
-ctx.strokeStyle = pal.panelBorder;
-ctx.lineWidth = 4;
-ctx.stroke();
+drawCardBox(
+ctx,
+px,
+py,
+pw,
+ph,
+24,
+pal,
+pal.panelBorder,
+4
+);
 
 ctx.textAlign = 'center';
 ctx.fillStyle = pal.accent;
-ctx.font = 'bold 40px sans-serif';
+ctx.font = 'bold 40px ' + pal.headingFont;
 ctx.fillText(t.tvFinishTitle, px + pw / 2, py + 72);
 
 ctx.fillStyle = pal.mutedText;
@@ -1233,8 +1655,8 @@ pw - 56,
 );
 ctx.fillStyle =
 i === 0
-? 'rgba(245,158,11,0.22)'
-: 'rgba(148,163,184,0.12)';
+? 'rgba(181,139,66,0.22)'
+: pal.activeRowBg;
 ctx.fill();
 ctx.strokeStyle = tm.color;
 ctx.lineWidth = 3;
@@ -1264,7 +1686,7 @@ ry + 49
 }
 } else {
 ctx.fillStyle = pal.panelText;
-ctx.font = 'bold 68px sans-serif';
+ctx.font = 'bold 68px ' + pal.headingFont;
 ctx.fillText(
 room.coopScore + ' PTS',
 px + pw / 2,
@@ -1293,7 +1715,7 @@ pw - 56,
 66,
 12
 );
-ctx.fillStyle = 'rgba(148,163,184,0.14)';
+ctx.fillStyle = pal.activeRowBg;
 ctx.fill();
 ctx.textAlign = 'left';
 ctx.fillStyle = pal.panelText;
@@ -1322,14 +1744,17 @@ if (!ctx || !state || !state.room) {
 return;
 }
 var room = state.room;
-var theme = room.theme || 'standard';
+var theme = room.theme || 'rowan';
 var pal = getThemePalette(theme);
-var lang = room.lang === 'en' ? 'en' : 'uk';
+var lang = room.lang === 'uk' ? 'uk' : 'en';
 var t = window.APP_I18N[lang];
 var now = Date.now();
 
 drawBackdrop(ctx, pal, theme, now);
 drawMap(ctx, room, pal, now);
+if (theme === 'rowan') {
+drawRowanCornerLogo(ctx, room);
+}
 drawScoreboard(ctx, room, pal, t, theme, now);
 drawLeftPanel(ctx, room, pal, t, now);
 

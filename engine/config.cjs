@@ -10,6 +10,7 @@ MIN_FINAL_POINTS: 20,
 NEIGHBOR_BONUS: 20,
 MAX_EVENTS: 50,
 THEMES: [
+'rowan',
 'standard',
 'dark',
 'christmas'

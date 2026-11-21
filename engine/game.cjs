@@ -55,18 +55,22 @@ undoSnapshot: null
 }
 
 // create new room with default rules
-// defaults to christmas uk pack
+// defaults to rowan theme and english
 function makeRoom(name, lang, theme) {
 var useLang =
-lang === 'en' ? 'en' : 'uk';
+lang === 'uk' ? 'uk' : 'en';
 var useTheme =
 config.THEMES.indexOf(theme) !== -1
 ? theme
-: 'standard';
+: 'rowan';
 var defaultPack =
-useLang === 'en'
-? 'christmas_en.txt'
-: 'christmas_uk.txt';
+useTheme === 'christmas'
+? useLang === 'uk'
+? 'christmas_uk.txt'
+: 'christmas_en.txt'
+: useLang === 'uk'
+? 'general_uk.txt'
+: 'general_en.txt';
 var pack = questions.loadPackByFile(
 defaultPack
 );
@@ -129,12 +133,12 @@ round: round
 }
 
 // build default root database object
-// creates one ready room on first run
+// creates one rowan english pub room
 function makeDefaultDb() {
 var firstRoom = makeRoom(
-'Різдвяний Квіз',
-'uk',
-'christmas'
+'Rowan Events Quiz',
+'en',
+'rowan'
 );
 return {
 activeRoomId: firstRoom.id,
@@ -433,9 +437,9 @@ db.activeRoomId = null;
 }
 if (db.rooms.length === 0) {
 var fallback = makeRoom(
-'Кімната #1',
-'uk',
-'standard'
+'Rowan Events Quiz',
+'en',
+'rowan'
 );
 db.rooms.push(fallback);
 }

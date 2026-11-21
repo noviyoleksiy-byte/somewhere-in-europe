@@ -177,6 +177,10 @@ playTone(784, 0.18, 0, 'triangle', 0.16);
 playTone(988, 0.18, 0.12, 'triangle', 0.16);
 playTone(1175, 0.25, 0.24, 'sine', 0.18);
 playTone(1568, 0.45, 0.38, 'sine', 0.16);
+} else if (theme === 'rowan') {
+playTone(440, 0.22, 0, 'triangle', 0.15);
+playTone(554, 0.22, 0.11, 'triangle', 0.15);
+playTone(659, 0.36, 0.22, 'sine', 0.17);
 } else {
 playTone(523, 0.16, 0, 'triangle', 0.16);
 playTone(659, 0.16, 0.11, 'triangle', 0.16);
@@ -349,9 +353,9 @@ JSON.stringify({ tvSound: !cur })
 function syncWaitingOverlay() {
 var room = latestState && latestState.room;
 var lang =
-room && room.lang === 'en' ? 'en' : 'uk';
+room && room.lang === 'uk' ? 'uk' : 'en';
 var theme =
-(room && room.theme) || 'christmas';
+(room && room.theme) || 'rowan';
 var t = window.APP_I18N[lang];
 
 waitingEl.className = 'theme-' + theme;
