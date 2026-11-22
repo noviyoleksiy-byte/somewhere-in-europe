@@ -46,6 +46,14 @@ path.join(__dirname, 'public', 'phone.html')
 );
 });
 
+// serve scripted 60s demo on /demo
+// opens standalone hd recorder page
+app.get('/demo', function (req, res) {
+res.sendFile(
+path.join(__dirname, 'public', 'demo.html')
+);
+});
+
 app.use(
 express.static(
 path.join(__dirname, 'public')
