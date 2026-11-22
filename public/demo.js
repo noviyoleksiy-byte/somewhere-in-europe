@@ -1,9 +1,9 @@
-// scripted 60s demo for europe quiz
+// scripted 75s demo for europe quiz
 // drives tv renderer and records hd
 (function () {
 var W = 1920;
 var H = 1080;
-var DURATION = 60.0;
+var DURATION = 75.0;
 
 var canvas =
 document.getElementById(
@@ -80,6 +80,25 @@ answerText:
 'December 28, 1895.'
 };
 
+var Q2_IT = {
+number: 2,
+country: 'IT',
+part1:
+'This country holds more ' +
+'UNESCO World Heritage Sites ' +
+'than any other nation and ' +
+'gave the world musical ' +
+'notation and the piano.',
+part2:
+'An independent microstate, ' +
+'Vatican City, sits entirely ' +
+'inside its capital city.',
+answerText:
+'Italy — Rome. Bartolomeo ' +
+'Cristofori invented the piano ' +
+'in Florence around 1700.'
+};
+
 var Q3_CH = {
 number: 3,
 country: 'CH',
@@ -120,74 +139,50 @@ answerText:
 'Europe\'s earliest.'
 };
 
-var Q_BLITZ = {
-number: 14,
-country: 'IT',
-part1:
-'Blitz round! Teams claim ' +
-'countries across Europe ' +
-'while the host switches ' +
-'live visual themes in one tap.',
-part2: '',
-answerText:
-'4 built-in themes + 5 packs ' +
-'(UK/EN) + custom .txt upload.'
-};
-
-// ordered country captures on map
+// ordered opened countries on map
 // computes exact scores at any sec
-var CONQUESTS = [
-{ at: 13.0, code: 'FR', tid: 't1', pts: 10 },
-{ at: 25.0, code: 'CH', tid: 't2', pts: 5 },
-{ at: 36.2, code: 'UA', tid: 't3', pts: 10 },
-{ at: 41.0, code: 'IT', tid: 't1', pts: 10 },
-{ at: 41.8, code: 'DE', tid: 't4', pts: 10 },
-{ at: 42.6, code: 'NL', tid: 't2', pts: 10 },
-{ at: 43.4, code: 'GB', tid: 't3', pts: 10 },
-{ at: 44.2, code: 'ES', tid: 't1', pts: 10 },
-{ at: 45.0, code: 'NO', tid: 't4', pts: 10 },
-{ at: 45.8, code: 'GR', tid: 't2', pts: 10 },
-{ at: 46.6, code: 'SE', tid: 't3', pts: 10 },
-{ at: 47.4, code: 'PL', tid: 't1', pts: 10 },
-{ at: 48.2, code: 'PT', tid: 't4', pts: 5 },
-{ at: 49.0, code: 'AT', tid: 't3', pts: 5 },
-{ at: 49.6, code: 'IE', tid: 't2', pts: 5 }
+var OPENED = [
+{ at: 16.5, code: 'FR', tid: 't1', pts: 10 },
+{ at: 32.0, code: 'CH', tid: 't2', pts: 5 },
+{ at: 45.8, code: 'UA', tid: 't3', pts: 10 },
+{ at: 51.5, code: 'DE', tid: 't4', pts: 10 },
+{ at: 51.5, code: 'NL', tid: 't2', pts: 10 },
+{ at: 51.5, code: 'GB', tid: 't3', pts: 10 },
+{ at: 51.5, code: 'ES', tid: 't1', pts: 10 },
+{ at: 51.5, code: 'NO', tid: 't4', pts: 10 },
+{ at: 51.5, code: 'GR', tid: 't2', pts: 10 },
+{ at: 51.5, code: 'SE', tid: 't3', pts: 10 },
+{ at: 51.5, code: 'PL', tid: 't1', pts: 10 },
+{ at: 51.5, code: 'PT', tid: 't4', pts: 5 },
+{ at: 51.5, code: 'AT', tid: 't3', pts: 5 },
+{ at: 51.5, code: 'IE', tid: 't2', pts: 5 },
+{ at: 61.6, code: 'IT', tid: 't1', pts: 10 }
 ];
 
 // one-shot timeline triggers list
 // fires map waves and audio cues
 var CUES = [
 { id: 'start', at: 0.2, kind: 'start' },
-{ id: 'q1', at: 6.5, kind: 'ask' },
-{ id: 'fr', at: 13.0, kind: 'paint', code: 'FR' },
-{ id: 'q3', at: 17.5, kind: 'ask' },
-{ id: 'clue', at: 21.5, kind: 'clue' },
-{ id: 'ch', at: 25.0, kind: 'paint', code: 'CH' },
-{ id: 'q5', at: 28.5, kind: 'ask' },
+{ id: 'q1', at: 8.5, kind: 'ask' },
+{ id: 'fr', at: 16.5, kind: 'paint', code: 'FR' },
+{ id: 'q3', at: 22.5, kind: 'ask' },
+{ id: 'clue', at: 27.5, kind: 'clue' },
+{ id: 'ch', at: 32.0, kind: 'paint', code: 'CH' },
+{ id: 'q5', at: 36.5, kind: 'ask' },
 {
 id: 'hint_pl',
-at: 31.8,
+at: 41.0,
 kind: 'hint',
 code: 'PL',
 tier: 'neighbor'
 },
-{ id: 'ua', at: 36.2, kind: 'paint', code: 'UA' },
-{ id: 'th_std', at: 40.5, kind: 'theme' },
-{ id: 'b_it', at: 41.0, kind: 'paint', code: 'IT' },
-{ id: 'b_de', at: 41.8, kind: 'paint', code: 'DE' },
-{ id: 'b_nl', at: 42.6, kind: 'paint', code: 'NL' },
-{ id: 'b_gb', at: 43.4, kind: 'paint', code: 'GB' },
-{ id: 'th_xmas', at: 44.0, kind: 'theme' },
-{ id: 'b_es', at: 44.2, kind: 'paint', code: 'ES' },
-{ id: 'b_no', at: 45.0, kind: 'paint', code: 'NO' },
-{ id: 'b_gr', at: 45.8, kind: 'paint', code: 'GR' },
-{ id: 'b_se', at: 46.6, kind: 'paint', code: 'SE' },
-{ id: 'th_pub', at: 47.2, kind: 'theme' },
-{ id: 'b_pl', at: 47.4, kind: 'paint', code: 'PL' },
-{ id: 'b_pt', at: 48.2, kind: 'paint', code: 'PT' },
-{ id: 'b_at', at: 49.0, kind: 'paint', code: 'AT' },
-{ id: 'b_ie', at: 49.6, kind: 'paint', code: 'IE' },
-{ id: 'fin', at: 50.5, kind: 'finish' }
+{ id: 'ua', at: 45.8, kind: 'paint', code: 'UA' },
+{ id: 'th_std', at: 51.5, kind: 'theme' },
+{ id: 'th_dark', at: 54.8, kind: 'theme' },
+{ id: 'th_xmas', at: 58.1, kind: 'theme' },
+{ id: 'th_pub', at: 61.4, kind: 'theme' },
+{ id: 'it', at: 61.6, kind: 'paint', code: 'IT' },
+{ id: 'fin', at: 64.5, kind: 'finish' }
 ];
 
 var elapsed = 0;
@@ -314,19 +309,22 @@ return '#dc2626';
 }
 
 // pick active visual theme at time t
-// shows pub, classic, and christmas
+// shows all 4 built-in themes cleanly
 function getThemeAt(t) {
-if (t >= 40.5 && t < 44.0) {
+if (t >= 51.5 && t < 54.8) {
 return 'standard';
 }
-if (t >= 44.0 && t < 47.2) {
+if (t >= 54.8 && t < 58.1) {
+return 'dark';
+}
+if (t >= 58.1 && t < 61.4) {
 return 'christmas';
 }
 return 'pub';
 }
 
 // build full tv renderer state at t
-// computes scores and painted map
+// computes scores and opened map
 function buildState(t) {
 var teams = [];
 var teamMap = {};
@@ -344,8 +342,8 @@ teamMap[bt.id] = obj;
 }
 
 var painted = {};
-for (var c = 0; c < CONQUESTS.length; c++) {
-var item = CONQUESTS[c];
+for (var c = 0; c < OPENED.length; c++) {
+var item = OPENED[c];
 if (t >= item.at) {
 painted[item.code] = {
 color: getTeamColor(item.tid),
@@ -360,9 +358,9 @@ var phase = 'ready';
 var activeTeamId = 't1';
 var cq = null;
 
-if (t >= 6.5 && t < 17.5) {
+if (t >= 8.5 && t < 22.5) {
 activeTeamId = 't1';
-phase = t < 13.0 ? 'asking' : 'revealed';
+phase = t < 16.5 ? 'asking' : 'revealed';
 cq = {
 number: Q1_FR.number,
 country: Q1_FR.country,
@@ -375,10 +373,10 @@ answerText: Q1_FR.answerText,
 guessedCodes: [],
 lastHint: null
 };
-} else if (t >= 17.5 && t < 28.5) {
+} else if (t >= 22.5 && t < 36.5) {
 activeTeamId = 't2';
-phase = t < 25.0 ? 'asking' : 'revealed';
-var p2Open = t >= 21.5;
+phase = t < 32.0 ? 'asking' : 'revealed';
+var p2Open = t >= 27.5;
 cq = {
 number: Q3_CH.number,
 country: Q3_CH.country,
@@ -391,10 +389,10 @@ answerText: Q3_CH.answerText,
 guessedCodes: [],
 lastHint: null
 };
-} else if (t >= 28.5 && t < 40.5) {
+} else if (t >= 36.5 && t < 51.5) {
 activeTeamId = 't3';
-phase = t < 36.2 ? 'asking' : 'revealed';
-var hasGuess = t >= 31.8 && t < 36.2;
+phase = t < 45.8 ? 'asking' : 'revealed';
+var hasGuess = t >= 41.0 && t < 45.8;
 cq = {
 number: Q5_UA.number,
 country: Q5_UA.country,
@@ -412,23 +410,22 @@ tier: 'neighbor'
 }
 : null
 };
-} else if (t >= 40.5 && t < 50.5) {
-var idx = Math.floor((t - 40.5) / 1.2) % 4;
-activeTeamId = BASE_TEAMS[idx].id;
-phase = 'asking';
+} else if (t >= 51.5 && t < 64.5) {
+activeTeamId = 't1';
+phase = t < 61.6 ? 'asking' : 'revealed';
 cq = {
-number: Q_BLITZ.number,
-country: Q_BLITZ.country,
-part1: Q_BLITZ.part1,
-part2: '',
+number: Q2_IT.number,
+country: Q2_IT.country,
+part1: Q2_IT.part1,
+part2: Q2_IT.part2,
 part2Revealed: false,
 currentValue: 10,
 isHalfValue: false,
-answerText: Q_BLITZ.answerText,
+answerText: Q2_IT.answerText,
 guessedCodes: [],
 lastHint: null
 };
-} else if (t >= 50.5) {
+} else if (t >= 64.5) {
 phase = 'finished';
 activeTeamId = 't1';
 cq = null;
@@ -512,12 +509,12 @@ ctx.closePath();
 // draw opening title card over map
 // fades smoothly before first riddle
 function drawIntroCard(t) {
-if (t >= 6.3) {
+if (t >= 8.2) {
 return;
 }
 var alpha = 1;
-if (t > 5.4) {
-alpha = Math.max(0, 1 - (t - 5.4) / 0.9);
+if (t > 7.2) {
+alpha = Math.max(0, 1 - (t - 7.2) / 1.0);
 }
 ctx.save();
 ctx.globalAlpha = alpha;
@@ -552,8 +549,8 @@ y + 124
 ctx.fillStyle = '#cbd5e1';
 ctx.font = '24px sans-serif';
 ctx.fillText(
-'37 Countries · Live Phone Host (/host)' +
-' · Zero Player Apps Needed',
+'37 Countries · Teams or Solo Play' +
+' · Live Phone Host (/host)',
 x + w / 2,
 y + 174
 );
@@ -591,104 +588,112 @@ ctx.restore();
 // pick host phone label and tap state
 // mirrors real mobile /host controls
 function getHostHudInfo(t) {
-if (t < 6.5) {
+if (t < 8.5) {
 return {
 status: 'Готово: 4 команди · 37 країн',
 btn: '▶ Почати гру на ТВ',
 color: '#059669',
-pressed: t >= 5.0 && t < 6.3
+pressed: t >= 7.0 && t < 8.3
 };
 }
-if (t < 13.0) {
+if (t < 16.5) {
 return {
 status: 'Хід: Red Lions · Загадка #1 (FR)',
 btn: '✓ Зарахувати: France (FR)',
 color: '#dc2626',
-pressed: t >= 12.1 && t < 13.0
+pressed: t >= 15.5 && t < 16.5
 };
 }
-if (t < 17.5) {
+if (t < 22.5) {
 return {
-status: 'France зафарбовано! +10 PTS',
+status: 'France відкрито! +10 PTS',
 btn: '→ Наступна загадка',
 color: '#0284c7',
-pressed: t >= 16.7 && t < 17.5
+pressed: t >= 21.6 && t < 22.5
 };
 }
-if (t < 21.5) {
+if (t < 27.5) {
 return {
 status: 'Хід: Blue Owls · Загадка #3 (CH)',
 btn: '+ Підказка #2 (½ балів)',
 color: '#d97706',
-pressed: t >= 20.6 && t < 21.5
+pressed: t >= 26.5 && t < 27.5
 };
 }
-if (t < 25.0) {
+if (t < 32.0) {
 return {
 status: 'Відкрито підказку · Ставка 5 PTS',
 btn: '✓ Зарахувати: Switzerland',
 color: '#2563eb',
-pressed: t >= 24.2 && t < 25.0
+pressed: t >= 31.0 && t < 32.0
 };
 }
-if (t < 28.5) {
+if (t < 36.5) {
 return {
 status: 'Switzerland +5 PTS · Blue Owls',
 btn: '→ Наступна загадка',
 color: '#0284c7',
-pressed: t >= 27.7 && t < 28.5
+pressed: t >= 35.6 && t < 36.5
 };
 }
-if (t < 31.8) {
+if (t < 41.0) {
 return {
 status: 'Хід: Emerald Fox · Загадка #5 (UA)',
-btn: '✕ Спроба команди: Poland (PL)',
+btn: '✕ Спроба: Poland (PL)',
 color: '#b91c1c',
-pressed: t >= 31.0 && t < 31.8
+pressed: t >= 40.0 && t < 41.0
 };
 }
-if (t < 36.2) {
+if (t < 45.8) {
 return {
 status: 'Радар: Poland → ПОРУЧ (СУСІД)!',
 btn: '✓ Зарахувати: Ukraine (UA)',
 color: '#059669',
-pressed: t >= 35.4 && t < 36.2
+pressed: t >= 44.8 && t < 45.8
 };
 }
-if (t < 40.5) {
+if (t < 51.5) {
 return {
-status: 'Ukraine зафарбовано! +10 PTS',
+status: 'Ukraine відкрито! +10 PTS',
 btn: '🎨 Перемкнути тему ТВ',
 color: '#7c3aed',
-pressed: t >= 39.6 && t < 40.5
+pressed: t >= 50.5 && t < 51.5
 };
 }
-if (t < 44.0) {
+if (t < 54.8) {
 return {
-status: 'Тема: Classic Blue · Бліц-раунд',
-btn: '🎄 Увімкнути Різдвяну тему',
+status: 'Тема 1/4: Classic Blue',
+btn: '🌙 Увімкнути Dark Slate',
+color: '#334155',
+pressed: t >= 54.0 && t < 54.8
+};
+}
+if (t < 58.1) {
+return {
+status: 'Тема 2/4: Dark Slate',
+btn: '🎄 Увімкнути Christmas',
 color: '#0f766e',
-pressed: t >= 43.3 && t < 44.0
+pressed: t >= 57.3 && t < 58.1
 };
 }
-if (t < 47.2) {
+if (t < 61.4) {
 return {
-status: 'Тема: Christmas (живий сніг!)',
-btn: '🍺 Повернути Rowan Pub',
+status: 'Тема 3/4: Christmas (живий сніг!)',
+btn: '🍺 Увімкнути Rowan Pub',
 color: '#15803d',
-pressed: t >= 46.5 && t < 47.2
+pressed: t >= 60.6 && t < 61.4
 };
 }
-if (t < 50.5) {
+if (t < 64.5) {
 return {
-status: 'Тема: Rowan Pub · 15 країн взято',
+status: 'Тема 4/4: Rowan Pub · Italy +10',
 btn: '🏆 Завершити і показати подіум',
 color: '#b45309',
-pressed: t >= 49.7 && t < 50.5
+pressed: t >= 63.6 && t < 64.5
 };
 }
 return {
-status: 'Гру завершено · Топ збережено',
+status: 'Гру завершено · 15 країн відкрито',
 btn: '↺ Новий раунд / Новий пакет',
 color: '#0284c7',
 pressed: false
@@ -760,29 +765,33 @@ bw - 20
 ctx.restore();
 }
 
-// show active theme pill during blitz
-// highlights 1-tap theme switching
+// show active theme card in chapter 5
+// highlights all 4 built-in tv themes
 function drawThemeBadge(t) {
-if (t < 40.5 || t >= 50.5) {
+if (t < 51.5 || t >= 64.5) {
 return;
 }
 var th = getThemeAt(t);
 var label =
 th === 'standard'
-? '🎨 ТЕМА: CLASSIC BLUE'
+? '🎨 ТЕМА 1/4: CLASSIC BLUE'
+: th === 'dark'
+? '🌙 ТЕМА 2/4: DARK SLATE'
 : th === 'christmas'
-? '🎄 ТЕМА: CHRISTMAS + СНІГ'
-: '🍺 ТЕМА: ROWAN PUB';
+? '🎄 ТЕМА 3/4: CHRISTMAS + СНІГ'
+: '🍺 ТЕМА 4/4: ROWAN PUB';
 var col =
 th === 'standard'
 ? '#0284c7'
+: th === 'dark'
+? '#64748b'
 : th === 'christmas'
 ? '#15803d'
-: '#92400e';
+: '#b45309';
 
 ctx.save();
-roundRect(1506, 26, 386, 54, 14);
-ctx.fillStyle = 'rgba(9, 14, 24, 0.90)';
+roundRect(1486, 26, 406, 56, 14);
+ctx.fillStyle = 'rgba(9, 14, 24, 0.92)';
 ctx.fill();
 ctx.strokeStyle = col;
 ctx.lineWidth = 3;
@@ -790,14 +799,19 @@ ctx.stroke();
 ctx.textAlign = 'center';
 ctx.fillStyle = '#f8fafc';
 ctx.font = 'bold 20px sans-serif';
-ctx.fillText(label, 1506 + 193, 60);
+ctx.fillText(
+label,
+1486 + 203,
+61,
+380
+);
 ctx.restore();
 }
 
 // pick ukrainian subtitle text at t
-// explains mechanics step by step
+// explains mechanics calmly step by step
 function getSubtitleInfo(t) {
-if (t < 6.5) {
+if (t < 8.5) {
 return {
 step: 0,
 badge: '1/6 · СТАРТ',
@@ -809,121 +823,121 @@ l2:
 'а гості бачать живу мапу та загадки на ТВ.'
 };
 }
-if (t < 13.0) {
+if (t < 16.5) {
 return {
 step: 1,
 badge: '2/6 · ЗАГАДКА',
 l1:
 'Команда Red Lions отримує загадку №1 за ' +
-'10 балів. Усі команди бачать текст на екрані.',
+'10 балів. Усі бачать текст на екрані.',
 l2:
-'Гравці радяться за столиком і називають ' +
-'країну Європи вголос ведучому.'
+'Гравці радяться і називають країну вголос — ' +
+'додатків на телефонах гостей не потрібно.'
 };
 }
-if (t < 17.5) {
+if (t < 22.5) {
 return {
 step: 1,
 badge: '2/6 · ЗАГАДКА',
 l1:
 'Влучно! Ведучий натискає «Франція» на ' +
-'телефоні — країна зафарбовується кольором команди.',
+'смартфоні — країна відкривається кольором команди.',
 l2:
 'На екрані одразу з’являється столиця, ' +
 'цікавий факт і +10 балів у таблицю.'
 };
 }
-if (t < 21.5) {
+if (t < 27.5) {
 return {
 step: 2,
 badge: '3/6 · ПІДКАЗКА',
 l1:
 'Складніша загадка №3 для Blue Owls. ' +
-'Команда сумнівається і просить підказку.',
+'Учасники вагаються і просять підказку.',
 l2:
 'Кожна загадка може мати 2 частини — ' +
 'друга відкривається за пів ціни (½ PTS).'
 };
 }
-if (t < 28.5) {
+if (t < 36.5) {
 return {
 step: 2,
 badge: '3/6 · ПІДКАЗКА',
 l1:
 'Ведучий відкрив 2-гу підказку — ставка ' +
-'знизилась до 5 балів, і команда вгадала Швейцарію!',
+'знизилась до 5 балів, і команда відкрила Швейцарію!',
 l2:
-'Гнучка система підказок тримає темп гри ' +
-'й допомагає навіть новачкам.'
+'Гнучка система підказок тримає комфортний ' +
+'темп гри й допомагає навіть новачкам.'
 };
 }
-if (t < 31.8) {
+if (t < 41.0) {
 return {
 step: 3,
 badge: '4/6 · РАДАР',
 l1:
-'Хід Emerald Fox! Якщо команда помиляється, ' +
+'Хід Emerald Fox! Якщо гравці помиляються, ' +
 'гра не зупиняється — вмикається радар.',
 l2:
-'Команда називає Польщу — ведучий фіксує ' +
+'Називають Польщу — ведучий фіксує ' +
 'спробу одним дотиком на смартфоні.'
 };
 }
-if (t < 36.2) {
+if (t < 45.8) {
 return {
 step: 3,
 badge: '4/6 · РАДАР',
 l1:
 'Мапа підказує «ПОРУЧ (СУСІД)!» — ' +
-'тепло/холодно підштовхує зал до відповіді.',
+'тепло/холодно підштовхує до правильної відповіді.',
 l2:
-'Гравці дивляться на сусідів Польщі й ' +
+'Учасники дивляться на сусідів Польщі й ' +
 'одразу вигукують: «Україна!»'
 };
 }
-if (t < 40.5) {
+if (t < 51.5) {
 return {
 step: 3,
 badge: '4/6 · РАДАР',
 l1:
-'Україна стає смарагдовою! +10 балів ' +
-'і жива реакція всього залу.',
+'Україна відкрита і стає смарагдовою! ' +
+'+10 балів і жива реакція всього залу.',
 l2:
-'Можна грати як командами (змагання), ' +
-'так і в кооперативі за спільний рекорд.'
+'Грати можна командами або індивідуально, ' +
+'якщо компанія невелика.'
 };
 }
-if (t < 45.5) {
+if (t < 58.1) {
 return {
 step: 4,
-badge: '5/6 · ТЕМИ І БЛІЦ',
+badge: '5/6 · ТЕМИ ОФОРМЛЕННЯ',
 l1:
-'4 вбудовані теми перемикаються на льоту: ' +
-'Classic, Pub, Dark та Різдвяна зі снігом!',
+'Окрема фішка — 4 вбудовані теми, ' +
+'які ведучий перемикає на льоту одним дотиком.',
 l2:
-'Плюс 5 готових пакетів (UK/EN) і завантаження ' +
-'власних .txt загадок за секунду.'
+'Classic Blue, Dark, Різдвяна зі снігом та ' +
+'Rowan Pub — під будь-який заклад чи свято.'
 };
 }
-if (t < 50.5) {
+if (t < 64.5) {
 return {
 step: 4,
-badge: '5/6 · ТЕМИ І БЛІЦ',
+badge: '5/6 · ТЕМИ ОФОРМЛЕННЯ',
 l1:
-'Команди захоплюють Європу країна за країною — ' +
-'мапа перетворюється на яскраву мозаїку.',
+'У грі 5 готових пакетів загадок (UK/EN) ' +
+'та завантаження власних .txt за секунду.',
 l2:
-'Без складного обладнання: лише один браузер ' +
-'на ТВ і телефон у руках ведучого.'
+'Учасники крок за кроком відкривають Європу — ' +
+'мапа оживає й наповнюється кольорами.'
 };
 }
-if (t < 55.5) {
+if (t < 70.0) {
 return {
 step: 5,
 badge: '6/6 · ФІНАЛ',
 l1:
 'Фінал! Автоматичний подіум показує ' +
-'переможців, бали і кількість захоплених країн.',
+'переможців, бали і кількість відкритих країн.',
 l2:
 'Результати зберігаються, а новий раунд з ' +
 'іншим пакетом запускається за 10 секунд.'
@@ -936,7 +950,7 @@ l1:
 '«Десь у Європі» — брендування під ваш паб, ' +
 'бар чи корпоратив на purplefox.space.',
 l2:
-'Натисніть «Записати відео (60с)» зверху, ' +
+'Натисніть «Записати відео (75с)» зверху, ' +
 'щоб зберегти це демо у Full HD.'
 };
 }
@@ -990,21 +1004,26 @@ ctx.fillStyle = '#38bdf8';
 ctx.fill();
 
 // step badge on top-left of card
-roundRect(x + 18, y + 23, 210, 26, 7);
+roundRect(x + 18, y + 23, 250, 26, 7);
 ctx.fillStyle =
 'rgba(56, 189, 248, 0.18)';
 ctx.fill();
 ctx.textAlign = 'center';
 ctx.fillStyle = '#38bdf8';
 ctx.font = 'bold 15px sans-serif';
-ctx.fillText(info.badge, x + 123, y + 41);
+ctx.fillText(
+info.badge,
+x + 143,
+y + 41,
+238
+);
 
 // clock at top-right of card
 ctx.textAlign = 'right';
 ctx.fillStyle = '#94a3b8';
 ctx.font = 'bold 17px sans-serif';
 ctx.fillText(
-formatClock(t) + ' / 01:00',
+formatClock(t) + ' / 01:15',
 x + w - 20,
 y + 42
 );
@@ -1123,7 +1142,7 @@ return list[i];
 return { mime: '', ext: 'webm' };
 }
 
-// start full 60s hd canvas recording
+// start full 75s hd canvas recording
 // restarts demo and saves video file
 function startRecording() {
 var chosen = pickMimeType();
@@ -1169,7 +1188,7 @@ recorder.onstop = function () {
 isRecording = false;
 recordBtn.classList.remove('recording');
 recordBtn.textContent =
-'⏺ Записати відео (60с)';
+'⏺ Записати відео (75с)';
 if (recChunks.length === 0) {
 return;
 }
@@ -1180,7 +1199,7 @@ var url = URL.createObjectURL(blob);
 var a = document.createElement('a');
 a.href = url;
 a.download =
-'somewhere-in-europe-demo-60s.' +
+'somewhere-in-europe-demo-75s.' +
 recExt;
 document.body.appendChild(a);
 a.click();
@@ -1196,7 +1215,7 @@ jumpTo(0);
 recorder.start(250);
 }
 
-// stop active recording early or at 60s
+// stop active recording early or at 75s
 // triggers file download via onstop
 function stopRecording() {
 if (
